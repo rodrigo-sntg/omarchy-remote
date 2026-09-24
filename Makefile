@@ -9,6 +9,7 @@ JAVA17 := $(firstword $(wildcard /usr/lib/jvm/java-17-openjdk))
 GRADLE := $(if $(JAVA17),JAVA_HOME=$(JAVA17)) ./gradlew -q
 VENV := host/.venv
 DEVICE ?=
+ARGS ?=
 
 help: ## Show this help
 	@echo "Omarchy Remote"
@@ -20,8 +21,8 @@ help: ## Show this help
 
 # ---------------------------------------------------------------- the PC
 
-install: ## Set up the PC: service, Omarchy menu and bar icon, Wake-on-LAN, pairing QR
-	@host/omarchy-remote-setup
+install: ## Set up the PC: service, Omarchy menu and bar icon, Wake-on-LAN, pairing QR (ARGS=--wake-on-lan)
+	@host/omarchy-remote-setup $(ARGS)
 
 uninstall: ## Undo the setup (keeps the pairing code and the list of phones)
 	@host/omarchy-remote-remove

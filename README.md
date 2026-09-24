@@ -2,6 +2,18 @@
 
 Your Android phone as [Omarchy](https://omarchy.org)'s remote. Over [Tailscale](https://tailscale.com) it works from anywhere: a trackpad and keyboard, the PC's screen in your hand, your coding agents as chats, and a control center for the desktop. Near the PC it also works over plain Bluetooth, as a keyboard and mouse, with nothing installed on the PC.
 
+## Quick start
+
+1. **Both devices on Tailscale**, signed in with the same account.
+2. **On the PC:** `git clone https://github.com/rodrigo-sntg/omarchy-remote && cd omarchy-remote && make install`
+3. **On the phone:** install the APK from the [latest release](https://github.com/rodrigo-sntg/omarchy-remote/releases/latest), open it, tap **PC › Network › Scan the PC's QR code** and point it at the QR code on the PC.
+
+**Using an AI agent?** Tell it:
+
+> Read https://github.com/rodrigo-sntg/omarchy-remote/blob/main/AGENT-INSTALL.md and set up Omarchy Remote on this PC for me.
+
+It checks what's needed, installs, asks you before anything that needs `sudo` or changes the network, and tells you when it's your turn on the phone.
+
 ## What it does
 
 - **Control:** trackpad (tap, drag, two-finger scroll, three-finger workspace switch), keyboard that types in the PC's layout, shortcut row, workspace buttons.

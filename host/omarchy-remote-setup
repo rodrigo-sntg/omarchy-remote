@@ -2,18 +2,30 @@
 # omarchy-remote-setup: gets Omarchy Remote running on this PC, step by step.
 #   Tailscale up? → the service (systemd --user) → Omarchy's Phone menu, bar icon and theme hook →
 #   waking the PC from the phone (asks first) → the pairing QR for the app.
-# Safe to run again. --quiet: no questions and no QR (the package's install hook uses it).
+# Safe to run again. Options:
+#   --quiet               no questions and no QR (the package's install hook uses it)
+#   --wake-on-lan         turn Wake-on-LAN on without asking   (for agents: after asking the person)
+#   --no-wake-on-lan      leave it off without asking
+# With no terminal to answer (an agent, a pipe), a question counts as "no".
 set -uo pipefail
 
-quiet=0
-[[ ${1:-} == --quiet ]] && quiet=1
+quiet=0; wol=""
+for arg in "$@"; do
+  case $arg in
+    --quiet) quiet=1 ;;
+    --wake-on-lan) wol=yes ;;
+    --no-wake-on-lan) wol=no ;;
+    *) echo "Unknown option: $arg" >&2; exit 2 ;;
+  esac
+done
 
 bold=$'\e[1m'; dim=$'\e[2m'; green=$'\e[32m'; yellow=$'\e[33m'; red=$'\e[31m'; off=$'\e[0m'
 step() { printf '\n%s%s%s\n' "$bold" "$1" "$off"; }
 ok()   { printf '  %s✓%s %s\n' "$green" "$off" "$1"; }
 warn() { printf '  %s!%s %s\n' "$yellow" "$off" "$1"; }
 fail() { printf '  %s✗%s %s\n' "$red" "$off" "$1"; exit 1; }
-ask()  { (( quiet )) && return 1; local a; read -r -p "  $1 [S/n] " a; [[ -z $a || $a =~ ^[sSyY] ]]; }
+# A question needs a person at a terminal: without one (or on EOF) the answer is "no".
+ask()  { (( quiet )) && return 1; [[ -t 0 ]] || return 1; local a; read -r -p "  $1 [S/n] " a || return 1; [[ -z $a || $a =~ ^[sSyY] ]]; }
 
 # Where things live: the package puts them under /usr; a checkout of the repository runs in place.
 here=$(cd "$(dirname "$(readlink -f "$0")")" && pwd -P)
@@ -74,7 +86,7 @@ else
     warn "$wired não está conectada agora"
   elif nmcli -g 802-3-ethernet.wake-on-lan connection show "$conn" | grep -q magic; then
     ok "Wake-on-LAN já ligado em $wired"
-  elif ask "Deixar o celular ligar este PC pela rede (Wake-on-LAN em $wired)?"; then
+  elif [[ $wol == yes ]] || { [[ -z $wol ]] && ask "Deixar o celular ligar este PC pela rede (Wake-on-LAN em $wired)?"; }; then
     if nmcli connection modify "$conn" 802-3-ethernet.wake-on-lan magic; then
       ok "Ligado. Se não acordar, ative também \"Wake on LAN\" na BIOS do PC."
     else
