@@ -1,0 +1,4 @@
+omarchy-remote/
+src/
+pkg/
+*.pkg.tar.zst

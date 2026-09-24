@@ -1,0 +1,3 @@
+#!/bin/bash
+# Omarchy theme-set hook (omarchy-remote): the phone follows the new theme. $1 = theme slug.
+command -v omarchy-remote >/dev/null && omarchy-remote theme-changed || true

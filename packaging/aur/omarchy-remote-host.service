@@ -1,0 +1,17 @@
+# Omarchy Remote's PC service (installed by the omarchy-remote-git package; enabled by omarchy-remote-setup).
+# Any of your own Tailscale devices with the pairing code may connect; for fewer, add --allow <machine>
+# in an override: systemctl --user edit omarchy-remote-host.service
+[Unit]
+Description=Omarchy Remote (your phone as the PC's remote, over Tailscale)
+After=graphical-session.target
+PartOf=graphical-session.target
+StartLimitIntervalSec=0
+
+[Service]
+ExecStart=/usr/bin/omarchy-remote-host
+# Tailscale may not be up yet at login; retry until it is. Exit 75: new code, systemd restarts it.
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=graphical-session.target

@@ -1,0 +1,1300 @@
+{
+ "_source": "the / menus of Claude Code 2.1.280 and Codex 0.155.1, read on 2026-09-24",
+ "claude": [
+  {
+   "n": "/add-dir",
+   "d": "Add a new working directory",
+   "g": "",
+   "pt": "Adicionar outra pasta de trabalho",
+   "live": true
+  },
+  {
+   "n": "/advisor",
+   "d": "Let Claude consult a stronger model at key moments",
+   "g": "",
+   "pt": "Deixar o Claude consultar um modelo mais forte nos momentos-chave",
+   "live": true
+  },
+  {
+   "n": "/artifact-capabilities",
+   "d": "Runtime capabilities a published Artifact page can be granted — behavior static HTML cannot provide on its own",
+   "g": "",
+   "pt": "Recursos de runtime de uma página de Artifact",
+   "live": false
+  },
+  {
+   "n": "/artifact-diagramming",
+   "d": "Diagramming know-how for Artifacts - when a picture earns its place, how to draw one that shows the real mecha",
+   "g": "",
+   "pt": "Como fazer diagramas em Artifacts",
+   "live": false
+  },
+  {
+   "n": "/artifacts",
+   "d": "Browse your published and shared artifacts",
+   "g": "",
+   "pt": "Ver seus artifacts publicados e compartilhados",
+   "live": true
+  },
+  {
+   "n": "/auto-mode-setup",
+   "d": "Teach auto mode about your environment, plus optional rule tweaks",
+   "g": "",
+   "pt": "Ensinar ao modo automático sobre seu ambiente",
+   "live": false
+  },
+  {
+   "n": "/autocompact",
+   "d": "Set how full the context gets before auto-summarizing",
+   "g": "",
+   "pt": "Definir quão cheio o contexto fica antes de resumir sozinho",
+   "live": true
+  },
+  {
+   "n": "/autofix-pr",
+   "d": "Monitor and autofix any issues with the current PR",
+   "g": "",
+   "pt": "Acompanhar e corrigir sozinho os problemas do PR atual",
+   "live": false
+  },
+  {
+   "n": "/background",
+   "d": "Send this session to the background and free the terminal",
+   "g": "",
+   "pt": "Mandar esta sessão para segundo plano e liberar o terminal",
+   "live": false
+  },
+  {
+   "n": "/batch",
+   "d": "Research and plan a large-scale change, then execute it in parallel across 5–30 isolated worktree agents that",
+   "g": "",
+   "pt": "Pesquisar e planejar uma mudança grande, depois executar em paralelo",
+   "live": false
+  },
+  {
+   "n": "/branch",
+   "d": "Create a branch of the current conversation at this point",
+   "g": "",
+   "pt": "Criar um ramo da conversa a partir daqui",
+   "live": false
+  },
+  {
+   "n": "/btw",
+   "d": "Ask a quick side question without interrupting the main conversation",
+   "g": "",
+   "pt": "Fazer uma pergunta rápida sem interromper a conversa principal",
+   "live": false
+  },
+  {
+   "n": "/bug",
+   "d": "Report a bug or share your conversation",
+   "g": "",
+   "pt": "Relatar um bug ou compartilhar a conversa",
+   "live": true
+  },
+  {
+   "n": "/cd",
+   "d": "Move this session to a new working directory",
+   "g": "",
+   "pt": "Mudar esta sessão para outra pasta",
+   "live": false
+  },
+  {
+   "n": "/chrome",
+   "d": "Open Claude in Chrome settings",
+   "g": "",
+   "pt": "Configurar o Claude no Chrome",
+   "live": true
+  },
+  {
+   "n": "/claude-api",
+   "d": "Reference for the Claude API / Anthropic SDK — model ids, pricing, params, streaming, tool use, MCP, agents, c",
+   "g": "",
+   "pt": "Referência da API do Claude e do SDK",
+   "live": false
+  },
+  {
+   "n": "/claude-in-chrome",
+   "d": "Automates your Chrome browser to interact with web pages - clicking elements, filling forms, capturing screens",
+   "g": "",
+   "pt": "Automatizar o Chrome para interagir com páginas",
+   "live": false
+  },
+  {
+   "n": "/clear",
+   "d": "Start a new session with empty context; previous session stays on disk (resumable with /resume)",
+   "g": "",
+   "pt": "Nova sessão com contexto vazio (a anterior continua em /resume)",
+   "live": false
+  },
+  {
+   "n": "/code-review",
+   "d": "3 free /ultrareview · Review the current diff, or a PR number/branch/path target, for correctness bugs (plus r",
+   "g": "",
+   "pt": "Revisar o diff atual ou um PR",
+   "live": false
+  },
+  {
+   "n": "/color",
+   "d": "Set the prompt bar color for this session",
+   "g": "",
+   "pt": "Mudar a cor da barra do prompt nesta sessão",
+   "live": true
+  },
+  {
+   "n": "/compact",
+   "d": "Free up context by summarizing the conversation so far",
+   "g": "",
+   "pt": "Liberar contexto resumindo a conversa até aqui",
+   "live": false
+  },
+  {
+   "n": "/config",
+   "d": "Open settings",
+   "g": "",
+   "pt": "Abrir as configurações",
+   "live": true
+  },
+  {
+   "n": "/context",
+   "d": "Visualize current context usage as a colored grid",
+   "g": "",
+   "pt": "Ver o uso do contexto como uma grade colorida",
+   "live": true
+  },
+  {
+   "n": "/copy",
+   "d": "Copy Claude's last response to clipboard (or /copy N for the Nth-latest)",
+   "g": "",
+   "pt": "Copiar a última resposta do Claude",
+   "live": false
+  },
+  {
+   "n": "/dataviz",
+   "d": "Use this skill whenever you are about to create ANY chart, graph, plot, dashboard, or data visualization, in A",
+   "g": "",
+   "pt": "Guia para criar gráficos e visualizações",
+   "live": false
+  },
+  {
+   "n": "/debug",
+   "d": "Enable debug logging for this session and help diagnose issues",
+   "g": "",
+   "pt": "Ligar o log de depuração e ajudar a diagnosticar",
+   "live": false
+  },
+  {
+   "n": "/deep-research",
+   "d": "[dynamic workflow] Deep research harness — fan-out web searches, fetch sources, adversarially ver…",
+   "g": "",
+   "pt": "Pesquisa profunda na web com várias fontes",
+   "live": false
+  },
+  {
+   "n": "/design",
+   "d": "Make a new Design artifact from a brief",
+   "g": "",
+   "pt": "Criar um artifact de Design a partir de um briefing",
+   "live": false
+  },
+  {
+   "n": "/design-login",
+   "d": "Authorize design-system access for /design-sync with your claude.ai account",
+   "g": "",
+   "pt": "Autorizar o acesso a design systems para /design-sync",
+   "live": true
+  },
+  {
+   "n": "/design-sync",
+   "d": "Push a React design system to claude.ai/design. This runs a converter that bundles the real component code (fr",
+   "g": "",
+   "pt": "Enviar um design system React para claude.ai/design",
+   "live": false
+  },
+  {
+   "n": "/diff",
+   "d": "Toggle the diff panel showing uncommitted changes",
+   "g": "",
+   "pt": "Mostrar/esconder o painel com as mudanças não commitadas",
+   "live": true
+  },
+  {
+   "n": "/doctor",
+   "d": "Health-check the user's Claude Code setup and fix issues: diagnose installation health — what the `claude doct",
+   "g": "",
+   "pt": "Checar e consertar a instalação do Claude Code",
+   "live": false
+  },
+  {
+   "n": "/effort",
+   "d": "Set effort level for model usage",
+   "g": "",
+   "pt": "Definir o nível de esforço do modelo",
+   "live": true
+  },
+  {
+   "n": "/exit",
+   "d": "Exit the CLI",
+   "g": "",
+   "pt": "Sair do Claude Code",
+   "live": false
+  },
+  {
+   "n": "/export",
+   "d": "Export the current conversation to a file or clipboard",
+   "g": "",
+   "pt": "Exportar a conversa para um arquivo ou a área de transferência",
+   "live": true
+  },
+  {
+   "n": "/fast",
+   "d": "Toggle fast mode (Opus 5.5)",
+   "g": "",
+   "pt": "Ligar/desligar o modo rápido",
+   "live": false
+  },
+  {
+   "n": "/feedback",
+   "d": "Send feedback to Anthropic or report a bug",
+   "g": "",
+   "pt": "Mandar feedback à Anthropic ou relatar um bug",
+   "live": true
+  },
+  {
+   "n": "/fewer-permission-prompts",
+   "d": "Scan your transcripts for common read-only Bash and MCP tool calls, then add a prioritized allowlist to projec",
+   "g": "",
+   "pt": "Liberar comandos só de leitura que você sempre aprova",
+   "live": false
+  },
+  {
+   "n": "/focus",
+   "d": "Toggle focus view: just your prompt, summary, and response",
+   "g": "",
+   "pt": "Modo foco: só seu prompt, o resumo e a resposta",
+   "live": false
+  },
+  {
+   "n": "/fork",
+   "d": "Copy this conversation into a new background session and keep working here",
+   "g": "",
+   "pt": "Copiar esta conversa para uma nova sessão em segundo plano",
+   "live": false
+  },
+  {
+   "n": "/goal",
+   "d": "Set a goal Claude checks before stopping",
+   "g": "",
+   "pt": "Definir um objetivo que o Claude confere antes de parar",
+   "live": false
+  },
+  {
+   "n": "/help",
+   "d": "Show help and available commands",
+   "g": "",
+   "pt": "Ajuda e comandos disponíveis",
+   "live": true
+  },
+  {
+   "n": "/hooks",
+   "d": "View hook configurations for tool events",
+   "g": "",
+   "pt": "Ver os hooks configurados",
+   "live": true
+  },
+  {
+   "n": "/ide",
+   "d": "Manage IDE integrations and show status",
+   "g": "",
+   "pt": "Gerenciar integrações com IDEs",
+   "live": true
+  },
+  {
+   "n": "/import",
+   "d": "Import config from another AI coding agent",
+   "g": "",
+   "pt": "Importar configuração de outro agente de código",
+   "live": true
+  },
+  {
+   "n": "/init",
+   "d": "Initialize a new CLAUDE.md file with codebase documentation",
+   "g": "",
+   "pt": "Criar um CLAUDE.md com a documentação do projeto",
+   "live": false
+  },
+  {
+   "n": "/insights",
+   "d": "Generate a report analyzing your Claude Code sessions",
+   "g": "",
+   "pt": "Relatório das suas sessões do Claude Code",
+   "live": false
+  },
+  {
+   "n": "/install-github-app",
+   "d": "Set up Claude GitHub Actions for a repository",
+   "g": "",
+   "pt": "Configurar o Claude no GitHub Actions de um repositório",
+   "live": true
+  },
+  {
+   "n": "/install-slack-app",
+   "d": "Install the Claude Slack app",
+   "g": "",
+   "pt": "Instalar o app do Claude no Slack",
+   "live": true
+  },
+  {
+   "n": "/keybindings",
+   "d": "Open your keyboard shortcuts file",
+   "g": "",
+   "pt": "Abrir o arquivo de atalhos de teclado",
+   "live": false
+  },
+  {
+   "n": "/list-agents",
+   "d": "List subagents, teammates, and other Claude sessions you can message",
+   "g": "",
+   "pt": "Listar subagentes, colegas e outras sessões do Claude",
+   "live": true
+  },
+  {
+   "n": "/login",
+   "d": "Sign in with your Anthropic account",
+   "g": "",
+   "pt": "Entrar com sua conta Anthropic",
+   "live": true
+  },
+  {
+   "n": "/logout",
+   "d": "Sign out from your Anthropic account",
+   "g": "",
+   "pt": "Sair da sua conta Anthropic",
+   "live": true
+  },
+  {
+   "n": "/loop",
+   "d": "Run a prompt or slash command on a recurring interval (e.g. /loop 5m /foo). Omit the interval to let the model",
+   "g": "",
+   "pt": "Rodar um prompt ou comando em intervalos",
+   "live": false
+  },
+  {
+   "n": "/mcp",
+   "d": "Manage MCP servers",
+   "g": "",
+   "pt": "Gerenciar servidores MCP",
+   "live": true
+  },
+  {
+   "n": "/memory",
+   "d": "Edit CLAUDE.md files and memory settings",
+   "g": "",
+   "pt": "Editar os CLAUDE.md e a memória",
+   "live": true
+  },
+  {
+   "n": "/mobile",
+   "d": "Show QR code to download the Claude mobile app",
+   "g": "",
+   "pt": "Mostrar o QR code do app do Claude para celular",
+   "live": true
+  },
+  {
+   "n": "/model",
+   "d": "Set the AI model for Claude Code (currently Opus 5.5 (1M context))",
+   "g": "",
+   "pt": "Escolher o modelo do Claude Code",
+   "live": true
+  },
+  {
+   "n": "/output-style",
+   "d": "List output styles or switch to one",
+   "g": "",
+   "pt": "Ver ou trocar o estilo das respostas",
+   "live": true
+  },
+  {
+   "n": "/passes",
+   "d": "Share a free week of Claude Code with friends and earn usage credits",
+   "g": "",
+   "pt": "Compartilhar uma semana grátis do Claude Code",
+   "live": true
+  },
+  {
+   "n": "/permissions",
+   "d": "Manage allow and deny tool permission rules",
+   "g": "",
+   "pt": "Regras de permissão das ferramentas",
+   "live": true
+  },
+  {
+   "n": "/plan",
+   "d": "Enable plan mode or view the current session plan",
+   "g": "",
+   "pt": "Ligar o modo plano ou ver o plano da sessão",
+   "live": false
+  },
+  {
+   "n": "/plugin",
+   "d": "Manage Claude Code plugins",
+   "g": "",
+   "pt": "Gerenciar plugins do Claude Code",
+   "live": true
+  },
+  {
+   "n": "/powerup",
+   "d": "Discover Claude Code features through quick interactive lessons",
+   "g": "",
+   "pt": "Descobrir recursos com lições rápidas",
+   "live": true
+  },
+  {
+   "n": "/privacy-settings",
+   "d": "View and update your privacy settings",
+   "g": "",
+   "pt": "Ver e mudar as configurações de privacidade",
+   "live": true
+  },
+  {
+   "n": "/radio",
+   "d": "Listen to Claude FM lo-fi radio",
+   "g": "",
+   "pt": "Ouvir a rádio lo-fi do Claude",
+   "live": true
+  },
+  {
+   "n": "/recap",
+   "d": "Generate a one-line session recap now",
+   "g": "",
+   "pt": "Gerar agora um resumo de uma linha da sessão",
+   "live": false
+  },
+  {
+   "n": "/release-notes",
+   "d": "View release notes",
+   "g": "",
+   "pt": "Ver as novidades da versão",
+   "live": true
+  },
+  {
+   "n": "/reload-plugins",
+   "d": "Activate pending plugin changes in the current session",
+   "g": "",
+   "pt": "Ativar mudanças pendentes de plugins nesta sessão",
+   "live": false
+  },
+  {
+   "n": "/reload-skills",
+   "d": "Pick up skills added or changed on disk during this session",
+   "g": "",
+   "pt": "Recarregar as skills mudadas no disco",
+   "live": false
+  },
+  {
+   "n": "/remote-control",
+   "d": "Control this session from your phone or claude.ai/code",
+   "g": "",
+   "pt": "Controlar esta sessão pelo celular ou claude.ai/code",
+   "live": true
+  },
+  {
+   "n": "/remote-env",
+   "d": "Choose the default environment for cloud agents",
+   "g": "",
+   "pt": "Escolher o ambiente padrão dos agentes na nuvem",
+   "live": true
+  },
+  {
+   "n": "/rename",
+   "d": "Rename the current conversation",
+   "g": "",
+   "pt": "Renomear a conversa",
+   "live": false
+  },
+  {
+   "n": "/resume",
+   "d": "Resume a previous conversation",
+   "g": "",
+   "pt": "Retomar uma conversa anterior",
+   "live": true
+  },
+  {
+   "n": "/rewind",
+   "d": "Restore the code and/or conversation to a previous point",
+   "g": "",
+   "pt": "Voltar o código e/ou a conversa a um ponto anterior",
+   "live": true
+  },
+  {
+   "n": "/run",
+   "d": "Launch and drive this project's app to see a change working. Use when asked to run, start, or screenshot the a",
+   "g": "",
+   "pt": "Rodar o app do projeto para ver uma mudança funcionando",
+   "live": false
+  },
+  {
+   "n": "/run-skill-generator",
+   "d": "Author or improve the run-<unit> skill - a per-project skill that tells agents how to build, launch, and drive",
+   "g": "",
+   "pt": "Criar ou melhorar a skill run do projeto",
+   "live": false
+  },
+  {
+   "n": "/sandbox",
+   "d": "◯ sandbox disabled (⏎ to configure)",
+   "g": "",
+   "pt": "Configurar o sandbox",
+   "live": true
+  },
+  {
+   "n": "/schedule",
+   "d": "Create, update, list, or run scheduled cloud agents (routines) that execute on a cron schedule.",
+   "g": "",
+   "pt": "Agendar agentes na nuvem",
+   "live": false
+  },
+  {
+   "n": "/scroll-speed",
+   "d": "Adjust mouse wheel scroll speed",
+   "g": "",
+   "pt": "Ajustar a velocidade da rolagem do mouse",
+   "live": true
+  },
+  {
+   "n": "/security-review",
+   "d": "Complete a security review of the pending changes on the current branch",
+   "g": "",
+   "pt": "Revisão de segurança das mudanças pendentes",
+   "live": false
+  },
+  {
+   "n": "/simplify",
+   "d": "Review the changed code for reuse, simplification, efficiency, and altitude cleanups, then apply the fixes. Qu",
+   "g": "",
+   "pt": "Revisar o código mudado buscando reuso e simplificação",
+   "live": false
+  },
+  {
+   "n": "/skill-doctor",
+   "d": "Show which loaded skills are unused and costing context",
+   "g": "",
+   "pt": "Ver skills carregadas sem uso que gastam contexto",
+   "live": true
+  },
+  {
+   "n": "/skills",
+   "d": "List available skills",
+   "g": "",
+   "pt": "Listar as skills disponíveis",
+   "live": true
+  },
+  {
+   "n": "/slides",
+   "d": "Make a new Slides deck artifact from a brief",
+   "g": "",
+   "pt": "Criar uma apresentação a partir de um briefing",
+   "live": false
+  },
+  {
+   "n": "/status",
+   "d": "Show Claude Code status including version, model, account, API connectivity, and tool statuses",
+   "g": "",
+   "pt": "Versão, modelo, conta, conexão e ferramentas",
+   "live": true
+  },
+  {
+   "n": "/statusline",
+   "d": "Set up Claude Code's status line UI",
+   "g": "",
+   "pt": "Configurar a linha de status",
+   "live": false
+  },
+  {
+   "n": "/stickers",
+   "d": "Order Claude Code stickers",
+   "g": "",
+   "pt": "Pedir adesivos do Claude Code",
+   "live": true
+  },
+  {
+   "n": "/subtask",
+   "d": "Send a subagent off with your full context; its result comes back here",
+   "g": "",
+   "pt": "Mandar um subagente com todo o contexto; o resultado volta aqui",
+   "live": false
+  },
+  {
+   "n": "/tasks",
+   "d": "View and manage everything running in the background",
+   "g": "",
+   "pt": "Ver e gerenciar o que roda em segundo plano",
+   "live": true
+  },
+  {
+   "n": "/team-onboarding",
+   "d": "Help teammates ramp on Claude Code with a guide from your usage",
+   "g": "",
+   "pt": "Guia para colegas começarem no Claude Code",
+   "live": false
+  },
+  {
+   "n": "/teleport",
+   "d": "Send this session to the cloud, or resume one from claude.ai",
+   "g": "",
+   "pt": "Mandar esta sessão para a nuvem, ou retomar uma do claude.ai",
+   "live": true
+  },
+  {
+   "n": "/terminal-setup",
+   "d": "Install Shift+Enter key binding for newlines",
+   "g": "",
+   "pt": "Instalar o atalho Shift+Enter para novas linhas",
+   "live": false
+  },
+  {
+   "n": "/theme",
+   "d": "Change the theme",
+   "g": "",
+   "pt": "Trocar o tema",
+   "live": true
+  },
+  {
+   "n": "/tui",
+   "d": "Set the terminal UI renderer (default | fullscreen)",
+   "g": "",
+   "pt": "Escolher o renderizador do terminal",
+   "live": true
+  },
+  {
+   "n": "/ultrareview",
+   "d": "3 free left · Start a cloud agent that finds and verifies bugs in your branch (~5-10 min, $5-$25 USD) · Runs i",
+   "g": "",
+   "pt": "Revisão na nuvem que acha e confere bugs no seu branch",
+   "live": true
+  },
+  {
+   "n": "/update-config",
+   "d": "Use this skill to configure the Claude Code harness via settings.json. Automated behaviors (\"from now on when",
+   "g": "",
+   "pt": "Configurar o Claude Code (settings.json)",
+   "live": false
+  },
+  {
+   "n": "/upgrade",
+   "d": "Upgrade to Max for higher rate limits and more Opus",
+   "g": "",
+   "pt": "Fazer upgrade para limites maiores",
+   "live": true
+  },
+  {
+   "n": "/usage",
+   "d": "Show session cost, plan usage, and activity stats",
+   "g": "",
+   "pt": "Custo da sessão, uso do plano e atividade",
+   "live": true
+  },
+  {
+   "n": "/usage-credits",
+   "d": "Configure usage credits or request them from your admin when you hit a limit",
+   "g": "",
+   "pt": "Configurar créditos de uso",
+   "live": true
+  },
+  {
+   "n": "/verify",
+   "d": "Verify that a code change actually does what it's supposed to by exercising it end-to-end and observing behavi",
+   "g": "",
+   "pt": "Conferir que uma mudança faz o que devia",
+   "live": false
+  },
+  {
+   "n": "/voice",
+   "d": "Toggle voice mode",
+   "g": "",
+   "pt": "Ligar/desligar o modo de voz",
+   "live": false
+  },
+  {
+   "n": "/web-setup",
+   "d": "Set up cloud sessions with your GitHub account",
+   "g": "",
+   "pt": "Configurar sessões na nuvem com o GitHub",
+   "live": true
+  },
+  {
+   "n": "/workflow-authoring",
+   "d": "Reference for writing a Workflow tool script (script API and gotchas, resume, quality patterns, worked example",
+   "g": "",
+   "pt": "Referência para escrever scripts de Workflow",
+   "live": false
+  },
+  {
+   "n": "/workflows",
+   "d": "Browse running and completed workflows",
+   "g": "",
+   "pt": "Ver workflows rodando e concluídos",
+   "live": true
+  },
+  {
+   "n": "/agents",
+   "d": "Ask Claude to create/manage subagents, or edit .claude/agents/",
+   "g": "removed"
+  },
+  {
+   "n": "/anthropic-skills:docs",
+   "d": "docs (living docs people share, comment on and edit; use only when the user asks for one: names a doc, documen",
+   "g": "anthropic-skills"
+  },
+  {
+   "n": "/anthropic-skills:docx",
+   "d": "Use this skill whenever the user wants to create, read, edit, or manipulate Word documents (.docx) or Word tem",
+   "g": "anthropic-skills"
+  },
+  {
+   "n": "/anthropic-skills:import-memory",
+   "d": "Import a memory export from another AI assistant into Claude's memory — conversationally, additively, and with",
+   "g": "anthropic-skills"
+  },
+  {
+   "n": "/anthropic-skills:morning",
+   "d": "Render the user's morning brief as a styled HTML artifact, or set it up as a recurring weekday task. Use only",
+   "g": "anthropic-skills"
+  },
+  {
+   "n": "/anthropic-skills:pdf",
+   "d": "Use this skill whenever the user wants to do anything with PDF files. This includes reading or extracting text",
+   "g": "anthropic-skills"
+  },
+  {
+   "n": "/anthropic-skills:pptx",
+   "d": "Use this skill any time a .pptx or .potx file is involved in any way — as input, output, or both. This include",
+   "g": "anthropic-skills"
+  },
+  {
+   "n": "/anthropic-skills:skill-creator",
+   "d": "Create new skills, modify and improve existing skills, and measure skill performance. Use when users want to c",
+   "g": "anthropic-skills"
+  },
+  {
+   "n": "/anthropic-skills:xlsx",
+   "d": "Use this skill any time a spreadsheet file is the primary input or output. This means any task where the user",
+   "g": "anthropic-skills"
+  },
+  {
+   "n": "/engineering:architecture",
+   "d": "Create or evaluate an architecture decision record (ADR). Use when choosing between technologies",
+   "g": "engineering"
+  },
+  {
+   "n": "/engineering:code-review",
+   "d": "Review code changes for security, performance, and correctness. Trigger with a PR URL or diff, \"",
+   "g": "engineering"
+  },
+  {
+   "n": "/engineering:debug",
+   "d": "Structured debugging session — reproduce, isolate, diagnose, and fix. Trigger with an error mess",
+   "g": "engineering"
+  },
+  {
+   "n": "/engineering:deploy-checklist",
+   "d": "Pre-deployment verification checklist. Use when about to ship a release, deploying a change with",
+   "g": "engineering"
+  },
+  {
+   "n": "/engineering:documentation",
+   "d": "Write and maintain technical documentation. Trigger with \"write docs for\", \"document this\", \"cre",
+   "g": "engineering"
+  },
+  {
+   "n": "/engineering:incident-response",
+   "d": "Run an incident response workflow — triage, communicate, and write postmortem. Trigger with \"we",
+   "g": "engineering"
+  },
+  {
+   "n": "/engineering:standup",
+   "d": "Generate a standup update from recent activity. Use when preparing for daily standup, summarizin",
+   "g": "engineering"
+  },
+  {
+   "n": "/engineering:system-design",
+   "d": "Design systems, services, and architectures. Trigger with \"design a system for\", \"how should we",
+   "g": "engineering"
+  },
+  {
+   "n": "/engineering:tech-debt",
+   "d": "Identify, categorize, and prioritize technical debt. Trigger with \"tech debt\", \"technical debt a",
+   "g": "engineering"
+  },
+  {
+   "n": "/engineering:testing-strategy",
+   "d": "Design test strategies and test plans. Trigger with \"how should we test\", \"test strategy for\", \"",
+   "g": "engineering"
+  },
+  {
+   "n": "/revenuecat:create-revenuecat-project",
+   "d": "Set up a complete RevenueCat project from scratch — creates apps, products, entitlements, offerin",
+   "g": "revenuecat"
+  },
+  {
+   "n": "/revenuecat:experiment-analysis",
+   "d": "Use when the user asks to analyze or understand a RevenueCat experiment or its results.",
+   "g": "revenuecat"
+  },
+  {
+   "n": "/revenuecat:integrate-revenuecat",
+   "d": "End-to-end RevenueCat integration — sets up the dashboard side via the RevenueCat MCP or the `rc`",
+   "g": "revenuecat"
+  },
+  {
+   "n": "/revenuecat:revenuecat",
+   "d": "Used for all interaction with RevenueCat not covered by a different skill",
+   "g": "revenuecat"
+  },
+  {
+   "n": "/revenuecat:revenuecat-app-valuation",
+   "d": "Use this skill when the user asks how much their app is worth, what they could sell their app for",
+   "g": "revenuecat"
+  },
+  {
+   "n": "/revenuecat:revenuecat-audiences",
+   "d": "Use before sharing a link to a filtered customer list or audience, and when identifying, filterin",
+   "g": "revenuecat"
+  },
+  {
+   "n": "/revenuecat:revenuecat-billing",
+   "d": "Use when the user asks about their RevenueCat plan, billing, their RevenueCat invoices, or how mu",
+   "g": "revenuecat"
+  },
+  {
+   "n": "/revenuecat:revenuecat-charts",
+   "d": "Use when the user asks about RevenueCat data, analytics, charts, or KPIs — querying charts with g",
+   "g": "revenuecat"
+  },
+  {
+   "n": "/revenuecat:revenuecat-cli",
+   "d": "Drive RevenueCat from the terminal with the `rc` CLI, an alternative to the RevenueCat MCP server",
+   "g": "revenuecat"
+  },
+  {
+   "n": "/revenuecat:revenuecat-customer-center",
+   "d": "Add the RevenueCat Customer Center (self service subscription management UI) to an app. Use when",
+   "g": "revenuecat"
+  },
+  {
+   "n": "/revenuecat:revenuecat-dashboard-links",
+   "d": "How to link to pages in the RevenueCat dashboard (offerings, products, customers, settings, integ",
+   "g": "revenuecat"
+  },
+  {
+   "n": "/revenuecat:revenuecat-entitlements-gate",
+   "d": "Check whether a RevenueCat user currently has access to a paid feature via entitlements. Use when",
+   "g": "revenuecat"
+  },
+  {
+   "n": "/revenuecat:revenuecat-experiments",
+   "d": "Use when the user asks to create, prepare, or set up a RevenueCat experiment (A/B test), to prepa",
+   "g": "revenuecat"
+  },
+  {
+   "n": "/revenuecat:revenuecat-forecasting",
+   "d": "Use this skill whenever the user asks for a forecast, projection, extrapolation, or run-rate (MRR",
+   "g": "revenuecat"
+  },
+  {
+   "n": "/revenuecat:revenuecat-identify-user",
+   "d": "Tie RevenueCat identity to your app's auth system. Use when the user asks to log in to RevenueCat",
+   "g": "revenuecat"
+  },
+  {
+   "n": "/revenuecat:revenuecat-migrate",
+   "d": "Migrate to RevenueCat from raw StoreKit or Google Play Billing, or upgrade the RevenueCat SDK acr",
+   "g": "revenuecat"
+  },
+  {
+   "n": "/revenuecat:revenuecat-paywall",
+   "d": "Display a RevenueCat paywall inside an app using the RevenueCatUI SDK. Use when the user asks to",
+   "g": "revenuecat"
+  },
+  {
+   "n": "/revenuecat:revenuecat-paywall-design",
+   "d": "Must invoke for any request to create, edit, evaluate, understand, or improve a RevenueCat Paywal",
+   "g": "revenuecat"
+  },
+  {
+   "n": "/revenuecat:revenuecat-purchase-flow",
+   "d": "Implement the RevenueCat purchase and restore flow. Use when the user asks to buy a package, purc",
+   "g": "revenuecat"
+  },
+  {
+   "n": "/revenuecat:revenuecat-sdk-compatibility",
+   "d": "Check whether an SDK version supports a RevenueCat feature, whether an SDK upgrade is required, w",
+   "g": "revenuecat"
+  },
+  {
+   "n": "/revenuecat:revenuecat-status",
+   "d": "Get a quick overview of your RevenueCat project configuration including apps, products, entitleme",
+   "g": "revenuecat"
+  },
+  {
+   "n": "/revenuecat:revenuecat-store-state",
+   "d": "Use when the user wants to inspect or change the state of products in App Store Connect, Google P",
+   "g": "revenuecat"
+  },
+  {
+   "n": "/revenuecat:revenuecat-testing-setup",
+   "d": "Set up a testing environment for RevenueCat purchases without charging real money. Use when the u",
+   "g": "revenuecat"
+  },
+  {
+   "n": "/revenuecat:revenuecat-troubleshoot",
+   "d": "Diagnose and resolve RevenueCat integration issues — inspects dashboard configuration through the",
+   "g": "revenuecat"
+  }
+ ],
+ "codex": [
+  {
+   "n": "/model",
+   "d": "choose what model and reasoning effort to use",
+   "g": "",
+   "pt": "Escolher o modelo e o esforço de raciocínio",
+   "live": true
+  },
+  {
+   "n": "/fast",
+   "d": "2x speed, increased usage",
+   "g": "",
+   "pt": "2x mais rápido, gasta mais",
+   "live": false
+  },
+  {
+   "n": "/ide",
+   "d": "include current selection, open files, and other context from your IDE",
+   "g": "",
+   "pt": "Incluir a seleção e os arquivos abertos na IDE",
+   "live": true
+  },
+  {
+   "n": "/permissions",
+   "d": "choose what Codex is allowed to do",
+   "g": "",
+   "pt": "Escolher o que o Codex pode fazer",
+   "live": true
+  },
+  {
+   "n": "/keymap",
+   "d": "remap TUI shortcuts",
+   "g": "",
+   "pt": "Remapear os atalhos do terminal",
+   "live": true
+  },
+  {
+   "n": "/vim",
+   "d": "toggle Vim mode for the composer",
+   "g": "",
+   "pt": "Ligar/desligar o modo Vim no campo",
+   "live": false
+  },
+  {
+   "n": "/experimental",
+   "d": "toggle experimental features",
+   "g": "",
+   "pt": "Ligar/desligar recursos experimentais",
+   "live": true
+  },
+  {
+   "n": "/approve",
+   "d": "approve one retry of a recent auto-review denial",
+   "g": "",
+   "pt": "Aprovar uma nova tentativa negada pela auto-revisão",
+   "live": true
+  },
+  {
+   "n": "/memories",
+   "d": "configure memory use and generation",
+   "g": "",
+   "pt": "Configurar o uso e a criação de memórias",
+   "live": true
+  },
+  {
+   "n": "/skills",
+   "d": "use skills to improve how Codex performs specific tasks",
+   "g": "",
+   "pt": "Usar skills para tarefas específicas",
+   "live": true
+  },
+  {
+   "n": "/import",
+   "d": "import setup, this project, and recent chats from Claude Code",
+   "g": "",
+   "pt": "Importar configuração e conversas do Claude Code",
+   "live": true
+  },
+  {
+   "n": "/hooks",
+   "d": "view and manage lifecycle hooks",
+   "g": "",
+   "pt": "Ver e gerenciar hooks",
+   "live": true
+  },
+  {
+   "n": "/review",
+   "d": "review my current changes and find issues",
+   "g": "",
+   "pt": "Revisar minhas mudanças atuais e achar problemas",
+   "live": true
+  },
+  {
+   "n": "/rename",
+   "d": "rename the current thread",
+   "g": "",
+   "pt": "Renomear a conversa",
+   "live": false
+  },
+  {
+   "n": "/new",
+   "d": "start a new chat during a conversation",
+   "g": "",
+   "pt": "Começar uma conversa nova",
+   "live": false
+  },
+  {
+   "n": "/archive",
+   "d": "archive this session",
+   "g": "",
+   "pt": "Arquivar esta sessão",
+   "live": false
+  },
+  {
+   "n": "/delete",
+   "d": "permanently delete this session and exit",
+   "g": "",
+   "pt": "Apagar esta sessão para sempre e sair",
+   "live": true
+  },
+  {
+   "n": "/resume",
+   "d": "resume a saved chat",
+   "g": "",
+   "pt": "Retomar uma conversa salva",
+   "live": true
+  },
+  {
+   "n": "/fork",
+   "d": "fork the current chat",
+   "g": "",
+   "pt": "Fazer uma cópia da conversa atual",
+   "live": false
+  },
+  {
+   "n": "/init",
+   "d": "create an AGENTS.md file with instructions for Codex",
+   "g": "",
+   "pt": "Criar um AGENTS.md com instruções para o Codex",
+   "live": false
+  },
+  {
+   "n": "/compact",
+   "d": "summarize conversation to prevent hitting the context limit",
+   "g": "",
+   "pt": "Resumir a conversa para não bater no limite de contexto",
+   "live": false
+  },
+  {
+   "n": "/recap",
+   "d": "summarize the current conversation now",
+   "g": "",
+   "pt": "Resumir a conversa agora",
+   "live": false
+  },
+  {
+   "n": "/plan",
+   "d": "switch to Plan mode",
+   "g": "",
+   "pt": "Mudar para o modo plano",
+   "live": false
+  },
+  {
+   "n": "/goal",
+   "d": "set or view the goal for a long-running task",
+   "g": "",
+   "pt": "Definir ou ver o objetivo de uma tarefa longa",
+   "live": false
+  },
+  {
+   "n": "/agents",
+   "d": "view and switch between all active agent sessions",
+   "g": "",
+   "pt": "Ver e trocar entre as sessões ativas",
+   "live": true
+  },
+  {
+   "n": "/side",
+   "d": "start a side conversation in an ephemeral fork",
+   "g": "",
+   "pt": "Conversa paralela numa cópia temporária",
+   "live": false
+  },
+  {
+   "n": "/copy",
+   "d": "copy the last response or part of it",
+   "g": "",
+   "pt": "Copiar a última resposta",
+   "live": true
+  },
+  {
+   "n": "/export",
+   "d": "export the conversation as markdown",
+   "g": "",
+   "pt": "Exportar a conversa em Markdown",
+   "live": false
+  },
+  {
+   "n": "/raw",
+   "d": "toggle raw scrollback mode for copy-friendly terminal selection",
+   "g": "",
+   "pt": "Modo cru do histórico, para copiar no terminal",
+   "live": false
+  },
+  {
+   "n": "/diff",
+   "d": "show git diff (including untracked files)",
+   "g": "",
+   "pt": "Mostrar o git diff (inclusive arquivos novos)",
+   "live": true
+  },
+  {
+   "n": "/mention",
+   "d": "mention a file",
+   "g": "",
+   "pt": "Mencionar um arquivo",
+   "live": true
+  },
+  {
+   "n": "/status",
+   "d": "show current session configuration and token usage",
+   "g": "",
+   "pt": "Configuração da sessão e uso de tokens",
+   "live": true
+  },
+  {
+   "n": "/cd",
+   "d": "change the current working directory",
+   "g": "",
+   "pt": "Mudar a pasta de trabalho",
+   "live": false
+  },
+  {
+   "n": "/pwd",
+   "d": "show the current working directory",
+   "g": "",
+   "pt": "Mostrar a pasta de trabalho",
+   "live": true
+  },
+  {
+   "n": "/usage",
+   "d": "view account usage or use a usage limit reset",
+   "g": "",
+   "pt": "Ver o uso da conta ou usar uma recarga",
+   "live": true
+  },
+  {
+   "n": "/title",
+   "d": "configure which items appear in the terminal title",
+   "g": "",
+   "pt": "Escolher o que aparece no título do terminal",
+   "live": true
+  },
+  {
+   "n": "/statusline",
+   "d": "configure which items appear in the status line",
+   "g": "",
+   "pt": "Escolher o que aparece na linha de status",
+   "live": true
+  },
+  {
+   "n": "/theme",
+   "d": "choose a syntax highlighting theme",
+   "g": "",
+   "pt": "Escolher o tema de cores do código",
+   "live": true
+  },
+  {
+   "n": "/pets",
+   "d": "choose or hide the terminal pet",
+   "g": "",
+   "pt": "Escolher ou esconder o bichinho do terminal",
+   "live": true
+  },
+  {
+   "n": "/mcp",
+   "d": "list configured MCP tools; use /mcp verbose for details",
+   "g": "",
+   "pt": "Listar as ferramentas MCP",
+   "live": true
+  },
+  {
+   "n": "/plugins",
+   "d": "browse plugins",
+   "g": "",
+   "pt": "Ver plugins",
+   "live": true
+  },
+  {
+   "n": "/logout",
+   "d": "log out of Codex",
+   "g": "",
+   "pt": "Sair da conta do Codex",
+   "live": false
+  },
+  {
+   "n": "/exit",
+   "d": "exit Codex",
+   "g": "",
+   "pt": "Sair do Codex",
+   "live": false
+  },
+  {
+   "n": "/feedback",
+   "d": "send logs to maintainers",
+   "g": "",
+   "pt": "Mandar logs para os mantenedores",
+   "live": true
+  },
+  {
+   "n": "/ps",
+   "d": "list background terminals",
+   "g": "",
+   "pt": "Listar terminais em segundo plano",
+   "live": true
+  },
+  {
+   "n": "/stop",
+   "d": "stop all background terminals",
+   "g": "",
+   "pt": "Parar todos os terminais em segundo plano",
+   "live": false
+  },
+  {
+   "n": "/clear",
+   "d": "clear the terminal and start a new chat",
+   "g": "",
+   "pt": "Limpar o terminal e começar uma conversa nova",
+   "live": false
+  },
+  {
+   "n": "/personality",
+   "d": "choose a communication style for Codex",
+   "g": "",
+   "pt": "Escolher o estilo de comunicação do Codex",
+   "live": true
+  },
+  {
+   "n": "/subagents",
+   "d": "switch between this session's subagents",
+   "g": "",
+   "pt": "Trocar entre os subagentes da sessão",
+   "live": true
+  }
+ ]
+}

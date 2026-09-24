@@ -1,0 +1,3 @@
+#!/bin/sh
+# Omarchy Remote's PC service, from the package.
+PYTHONPATH=/usr/lib/omarchy-remote exec /usr/bin/python3 -m keypad_host "$@"

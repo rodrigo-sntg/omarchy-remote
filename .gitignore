@@ -1,0 +1,15 @@
+.gradle/
+.kotlin/
+**/build/
+local.properties
+.idea/
+*.iml
+*.jks
+*.keystore
+host/.venv/
+__pycache__/
+.pytest_cache/
+.superpowers/
+# Screen captures of the PC: private content
+docs/screenshots/
+/dist/

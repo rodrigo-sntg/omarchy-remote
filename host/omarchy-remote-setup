@@ -1,0 +1,93 @@
+#!/bin/bash
+# omarchy-remote-setup: gets Omarchy Remote running on this PC, step by step.
+#   Tailscale up? → the service (systemd --user) → Omarchy's Phone menu, bar icon and theme hook →
+#   waking the PC from the phone (asks first) → the pairing QR for the app.
+# Safe to run again. --quiet: no questions and no QR (the package's install hook uses it).
+set -uo pipefail
+
+quiet=0
+[[ ${1:-} == --quiet ]] && quiet=1
+
+bold=$'\e[1m'; dim=$'\e[2m'; green=$'\e[32m'; yellow=$'\e[33m'; red=$'\e[31m'; off=$'\e[0m'
+step() { printf '\n%s%s%s\n' "$bold" "$1" "$off"; }
+ok()   { printf '  %s✓%s %s\n' "$green" "$off" "$1"; }
+warn() { printf '  %s!%s %s\n' "$yellow" "$off" "$1"; }
+fail() { printf '  %s✗%s %s\n' "$red" "$off" "$1"; exit 1; }
+ask()  { (( quiet )) && return 1; local a; read -r -p "  $1 [S/n] " a; [[ -z $a || $a =~ ^[sSyY] ]]; }
+
+# Where things live: the package puts them under /usr; a checkout of the repository runs in place.
+here=$(cd "$(dirname "$(readlink -f "$0")")" && pwd -P)
+if [[ -d /usr/lib/omarchy-remote/keypad_host && $here == /usr/bin ]]; then
+  packaged=1; share=/usr/share/omarchy-remote
+else
+  packaged=0; share=$(cd "$here/.." && pwd -P)
+fi
+
+step "1. Tailscale"
+command -v tailscale >/dev/null || fail "Instale o Tailscale: sudo pacman -S tailscale"
+if ! tailscale status --json 2>/dev/null | grep -q '"BackendState": *"Running"'; then
+  fail "O Tailscale não está conectado. Rode: sudo systemctl enable --now tailscaled && sudo tailscale up"
+fi
+ok "Conectado como $(tailscale status --json | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d["Self"]["DNSName"].rstrip("."))')"
+warn "No celular: instale o Tailscale e entre com a mesma conta."
+
+step "2. Teclado e mouse virtuais"
+if [[ -w /dev/uinput ]]; then
+  ok "/dev/uinput liberado para você"
+else
+  warn "Sem acesso ao /dev/uinput ainda: reinicie a sessão (o pacote instalou a regra) ou rode: sudo modprobe uinput"
+fi
+
+step "3. Serviço"
+unit_dir=$HOME/.config/systemd/user
+if (( packaged )); then
+  rm -f "$unit_dir/omarchy-remote-host.service"   # the package's unit in /usr/lib/systemd/user is the one
+else
+  mkdir -p "$unit_dir"
+  sed "s|%h/dev/projects/omarchy-remote|$share|" "$share/host/omarchy-remote-host.service" > "$unit_dir/omarchy-remote-host.service"
+fi
+systemctl --user daemon-reload
+if systemctl --user enable --now omarchy-remote-host.service >/dev/null 2>&1; then
+  ok "omarchy-remote-host.service ligado (volta sozinho a cada login)"
+else
+  fail "O serviço não subiu: systemctl --user status omarchy-remote-host.service"
+fi
+
+step "4. Omarchy"
+if command -v omarchy-menu >/dev/null || [[ -d $HOME/.config/omarchy ]]; then
+  if bash "$share/omarchy/install.sh" >/dev/null 2>&1; then
+    ok "Menu Super+Espaço › Phone, ícone na barra e tema acompanhando"
+  else
+    warn "Não consegui integrar ao Omarchy agora: rode de novo com a sessão gráfica aberta"
+  fi
+else
+  warn "Omarchy não encontrado: o app funciona, só sem o menu Phone e o ícone na barra"
+fi
+
+step "5. Ligar o PC pelo celular"
+wired=$(for n in /sys/class/net/*; do [[ -e $n/device && ! -d $n/wireless ]] && basename "$n"; done | head -1)
+if [[ -z $wired ]] || ! command -v nmcli >/dev/null; then
+  warn "Sem placa de rede com cabo gerenciada pelo NetworkManager: o celular não vai conseguir ligar o PC"
+else
+  conn=$(nmcli -g GENERAL.CONNECTION device show "$wired" 2>/dev/null)
+  if [[ -z $conn ]]; then
+    warn "$wired não está conectada agora"
+  elif nmcli -g 802-3-ethernet.wake-on-lan connection show "$conn" | grep -q magic; then
+    ok "Wake-on-LAN já ligado em $wired"
+  elif ask "Deixar o celular ligar este PC pela rede (Wake-on-LAN em $wired)?"; then
+    if nmcli connection modify "$conn" 802-3-ethernet.wake-on-lan magic; then
+      ok "Ligado. Se não acordar, ative também \"Wake on LAN\" na BIOS do PC."
+    else
+      warn "O NetworkManager recusou; rode: nmcli connection modify \"$conn\" 802-3-ethernet.wake-on-lan magic"
+    fi
+  else
+    warn "Pulado. Para ativar depois: omarchy-remote-setup"
+  fi
+fi
+
+(( quiet )) && { printf '\n%sPronto. Para parear o celular: omarchy-remote pair%s\n' "$dim" "$off"; exit 0; }
+
+step "6. Parear o celular"
+for _ in 1 2 3 4 5 6 7 8 9 10; do [[ -s $HOME/.config/omarchy-remote/token ]] && break; sleep 0.5; done
+if command -v omarchy-remote >/dev/null; then omarchy-remote pair; else "$share/host/omarchy-remote" pair; fi
+printf '\nNo app: Computador › Rede › Ler QR. Depois disso ele reconecta sozinho.\n'

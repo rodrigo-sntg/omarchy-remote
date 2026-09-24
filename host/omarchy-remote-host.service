@@ -1,0 +1,17 @@
+# Omarchy Remote host as a user service, tied to the graphical session (where /dev/uinput is accessible).
+# Install: host/omarchy-remote-setup (or the omarchy-remote-git package)
+# Any of your own Tailscale devices with the pairing code may connect; add --allow <machine> to restrict.
+[Unit]
+Description=Omarchy Remote host (input over Tailscale)
+After=graphical-session.target
+PartOf=graphical-session.target
+StartLimitIntervalSec=0
+
+[Service]
+ExecStart=%h/dev/projects/omarchy-remote/host/run.sh
+# Tailscale may not be up yet at login; retry until it is.
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=graphical-session.target

@@ -1,0 +1,176 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="xterm.css">
+<style>
+  @font-face { font-family: "JetBrainsMono NF"; src: url(JetBrainsMonoNerdFont-Regular.ttf); }
+  html, body { margin: 0; height: 100%; background: #0b0c0d; overflow: hidden; }
+  #t { height: 100%; }
+  .xterm .xterm-viewport { overflow-y: hidden; }
+</style>
+<script src="xterm.js"></script>
+<script src="addon-fit.js"></script>
+</head>
+<body>
+<div id="t"></div>
+<script>
+  // The socket lives in Kotlin (same pairing header as every channel); this page only draws
+  // and reports what was typed. Bytes cross the bridge as base64.
+  const term = new Terminal({
+    fontFamily: '"JetBrainsMono NF", monospace', fontSize: 13, lineHeight: 1.1,
+    cursorBlink: true, scrollback: 3000, allowProposedApi: true,
+    // Links (OSC 8) go to the phone's browser through Kotlin; the page itself never navigates.
+    linkHandler: { activate: (event, uri) => Android.openLink(uri), allowNonHttpProtocols: false },
+  });
+  const fit = new FitAddon.FitAddon();
+  term.loadAddon(fit);
+  term.open(document.getElementById('t'));
+  // Fewer rewrites from the keyboard; the rest is handled below (typed text taken over).
+  term.textarea.setAttribute('autocorrect', 'off');
+  term.textarea.setAttribute('autocapitalize', 'off');
+  term.textarea.setAttribute('spellcheck', 'false');
+
+  const encoder = new TextEncoder();
+  function toBase64(bytes) {
+    let s = '';
+    for (let i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
+    return btoa(s);
+  }
+  function fromBase64(b64) {
+    const s = atob(b64);
+    const bytes = new Uint8Array(s.length);
+    for (let i = 0; i < s.length; i++) bytes[i] = s.charCodeAt(i);
+    return bytes;
+  }
+  term.onData(data => Android.send(toBase64(encoder.encode(data))));
+  term.onBinary(data => Android.send(btoa(data)));
+
+  // Android keyboards (Samsung's above all) compose whole words and rewrite them; xterm.js' own
+  // composition handling and its textarea diffing then send the word again ("pastes" on space).
+  // Typed text is taken over here instead: the hidden textarea keeps a marker plus the current word,
+  // and each change goes out as backspaces (DEL) + the new text. Real key presses (Enter, arrows,
+  // a hardware keyboard) still go through xterm, which cancels them before any input event.
+  const MARK = '\u200B';
+  const field = term.textarea;
+  let shown = MARK;
+  function resetField() { field.value = MARK; field.setSelectionRange(1, 1); shown = MARK; }
+  function typed(before, after) {
+    const a = Array.from(before), b = Array.from(after);
+    let same = 0;
+    while (same < a.length && same < b.length && a[same] === b[same]) same++;
+    return '\x7f'.repeat(a.length - same) + b.slice(same).join('');
+  }
+  function sendTyped(text) {
+    if (!text) return;
+    term.scrollToBottom();
+    Android.send(toBase64(encoder.encode(text.replace(/\n/g, '\r'))));
+  }
+  const root = term.element;
+  root.addEventListener('input', event => {
+    if (event.target !== field) return;
+    event.stopPropagation();  // xterm never sees it
+    const now = field.value;
+    if (!now.startsWith(MARK)) {
+      // Backspace on an empty word removed the marker (or something cleared the field).
+      sendTyped(now === '' ? '\x7f' : typed('', now));
+      resetField();
+      return;
+    }
+    sendTyped(typed(shown.slice(MARK.length), now.slice(MARK.length)));
+    shown = now;
+    if (now.includes('\n') || (now.length > 40 && now.endsWith(' '))) resetField();
+  }, true);
+  for (const kind of ['compositionstart', 'compositionupdate', 'compositionend']) {
+    root.addEventListener(kind, event => { if (event.target === field) event.stopPropagation(); }, true);
+  }
+  root.addEventListener('keydown', event => {
+    if (event.target !== field) return;
+    // 229: a soft keyboard is typing; the input event above handles it (xterm would diff it again).
+    if (event.keyCode === 229 || event.isComposing) event.stopPropagation();
+    else if (event.key === 'Enter') setTimeout(resetField, 0);  // xterm sends it; a new line starts clean
+  }, true);
+  resetField();
+
+  // Touch scrolling: a finger drag becomes wheel steps given to xterm itself, so the program gets
+  // what it asked for (herdr: the mouse wheel; a pager: arrows; a shell: the scrollback). A quick
+  // flick keeps going; a tap without movement still focuses (keyboard).
+  const screenEl = term.element.querySelector('.xterm-screen');
+  const lineHeight = () => screenEl.clientHeight / term.rows;
+  let touch = null, flinging = 0;
+  function wheel(lines, x, y) {
+    const dy = Math.sign(lines) * lineHeight();
+    for (let i = 0; i < Math.abs(lines); i++) {
+      screenEl.dispatchEvent(new WheelEvent('wheel', { deltaY: dy, deltaMode: 0, clientX: x, clientY: y, bubbles: true, cancelable: true }));
+    }
+  }
+  root.addEventListener('touchstart', event => {
+    if (event.touches.length !== 1) { touch = null; return; }
+    cancelAnimationFrame(flinging);
+    const t = event.touches[0];
+    touch = { x: t.clientX, y: t.clientY, lastY: t.clientY, lastT: event.timeStamp, v: 0, rest: 0, moved: false };
+  }, { passive: true });
+  root.addEventListener('touchmove', event => {
+    if (!touch || event.touches.length !== 1) return;
+    const y = event.touches[0].clientY;
+    if (!touch.moved && Math.abs(y - touch.y) < 10) return;
+    touch.moved = true;
+    event.preventDefault();
+    const dy = y - touch.lastY;
+    const dt = Math.max(1, event.timeStamp - touch.lastT);
+    touch.v = 0.8 * (dy / dt) + 0.2 * touch.v;
+    touch.lastY = y;
+    touch.lastT = event.timeStamp;
+    touch.rest -= dy;  // finger up = content up = further down
+    const lines = Math.trunc(touch.rest / lineHeight());
+    touch.rest -= lines * lineHeight();
+    if (lines) wheel(lines, touch.x, y);
+  }, { passive: false });
+  root.addEventListener('touchend', event => {
+    if (!touch) return;
+    const { moved, x, lastY, lastT } = touch;
+    let v = -touch.v, rest = touch.rest;  // px/ms, positive = scroll down
+    touch = null;
+    if (!moved) return;
+    event.preventDefault();  // a scroll is not a tap: no keyboard popping up
+    if (event.timeStamp - lastT > 80 || Math.abs(v) < 0.5) return;
+    let prev = performance.now();
+    const step = now => {
+      const dt = Math.min(48, now - prev);
+      prev = now;
+      rest += v * dt;
+      v *= Math.exp(-dt / 325);
+      const lines = Math.trunc(rest / lineHeight());
+      rest -= lines * lineHeight();
+      if (lines) wheel(lines, x, lastY);
+      if (Math.abs(v) > 0.05) flinging = requestAnimationFrame(step);
+    };
+    flinging = requestAnimationFrame(step);
+  }, { passive: false });
+
+  // The host accepts 20..500 columns and 5..200 rows; the WebView may have no height yet at first,
+  // so the page announces itself (and the channel opens) only once the fitted size is usable.
+  let started = false, fontReady = false;
+  function usable() { return term.cols >= 20 && term.rows >= 5; }
+  function refit() {
+    fit.fit();
+    if (started) { if (usable()) Android.resize(term.cols, term.rows); }
+    else if (fontReady && usable()) { started = true; Android.ready(term.cols, term.rows); }
+  }
+  new ResizeObserver(refit).observe(document.getElementById('t'));
+
+  // Flow control: tell the host once a chunk is drawn, so it never outruns this page.
+  window.termWrite = b64 => { const bytes = fromBase64(b64); term.write(bytes, () => Android.ack(bytes.length)); };
+  window.termTheme = json => {
+    const theme = JSON.parse(json);
+    term.options.theme = theme;
+    document.body.style.background = theme.background;
+  };
+  window.termFocus = () => term.focus();
+  window.termFontSize = px => { term.options.fontSize = px; refit(); };
+
+  document.fonts.load('13px "JetBrainsMono NF"').finally(() => { fontReady = true; refit(); });
+</script>
+</body>
+</html>

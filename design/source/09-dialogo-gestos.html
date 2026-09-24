@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Dicas de gestos</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body { margin: 0; font-family: Archivo, 'Helvetica Neue', sans-serif; background: #0B0C0D; color: #ECEEF0; -webkit-font-smoothing: antialiased; }
+button { font-family: inherit; cursor: pointer; }
+a { color: #C5F24A; } a:hover { color: #D9FF77; }
+</style>
+</helmet>
+<div style="width:390px;height:844px;box-sizing:border-box;background:#0B0C0D;display:flex;flex-direction:column;justify-content:center;padding:0 16px;overflow:hidden;"><div style="border-radius:26px;background:#16191B;border:1px solid #2B3034;padding:24px 22px;display:flex;flex-direction:column;gap:20px;">
+<div><div style="font:600 21px/1.1 Archivo,'Helvetica Neue',sans-serif;color:#ECEEF0;">Modo trackpad</div><div style="font:400 13px/1.35 Archivo,'Helvetica Neue',sans-serif;color:#99A1A8;margin-top:4px;">Vale para o pad e para a tela do PC</div></div>
+<div style="display:flex;flex-direction:column;gap:14px;">
+<div style="display:flex;gap:14px;align-items:flex-start;">
+<span style="flex-shrink:0;width:38px;height:38px;border-radius:12px;background:#1D2124;border:1px solid #2B3034;display:flex;align-items:center;justify-content:center;font:600 14px/1 'JetBrains Mono',ui-monospace,monospace;color:#C5F24A;">1</span>
+<span style="font:400 14.5px/1.4 Archivo,'Helvetica Neue',sans-serif;color:#99A1A8;padding-top:9px;"><strong style="color:#ECEEF0;font-weight:600;">Um dedo</strong> move o cursor · toque clica</span></div>
+<div style="display:flex;gap:14px;align-items:flex-start;">
+<span style="flex-shrink:0;width:38px;height:38px;border-radius:12px;background:#1D2124;border:1px solid #2B3034;display:flex;align-items:center;justify-content:center;font:600 14px/1 'JetBrains Mono',ui-monospace,monospace;color:#C5F24A;">2</span>
+<span style="font:400 14.5px/1.4 Archivo,'Helvetica Neue',sans-serif;color:#99A1A8;padding-top:9px;"><strong style="color:#ECEEF0;font-weight:600;">Dois toques e segure</strong> arrasta ou seleciona</span></div>
+<div style="display:flex;gap:14px;align-items:flex-start;">
+<span style="flex-shrink:0;width:38px;height:38px;border-radius:12px;background:#1D2124;border:1px solid #2B3034;display:flex;align-items:center;justify-content:center;font:600 14px/1 'JetBrains Mono',ui-monospace,monospace;color:#C5F24A;">2</span>
+<span style="font:400 14.5px/1.4 Archivo,'Helvetica Neue',sans-serif;color:#99A1A8;padding-top:9px;"><strong style="color:#ECEEF0;font-weight:600;">Dois dedos</strong> rolam · toque com dois é botão direito</span></div>
+<div style="display:flex;gap:14px;align-items:flex-start;">
+<span style="flex-shrink:0;width:38px;height:38px;border-radius:12px;background:#1D2124;border:1px solid #2B3034;display:flex;align-items:center;justify-content:center;font:600 14px/1 'JetBrains Mono',ui-monospace,monospace;color:#C5F24A;">3</span>
+<span style="font:400 14.5px/1.4 Archivo,'Helvetica Neue',sans-serif;color:#99A1A8;padding-top:9px;"><strong style="color:#ECEEF0;font-weight:600;">Três dedos para os lados</strong> trocam de workspace · toque com três é botão do meio</span></div>
+<div style="display:flex;gap:14px;align-items:flex-start;">
+<span style="flex-shrink:0;width:38px;height:38px;border-radius:12px;background:#1D2124;border:1px solid #2B3034;display:flex;align-items:center;justify-content:center;font:600 14px/1 'JetBrains Mono',ui-monospace,monospace;color:#C5F24A;">⇲</span>
+<span style="font:400 14.5px/1.4 Archivo,'Helvetica Neue',sans-serif;color:#99A1A8;padding-top:9px;"><strong style="color:#ECEEF0;font-weight:600;">Pinça</strong> dá zoom e a vista segue o cursor</span></div>
+</div>
+<div style="height:1px;background:#2B3034;"></div>
+<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+<span style="font:400 13px/1.4 Archivo,'Helvetica Neue',sans-serif;color:#808890;flex-grow:1;">Troque o modo e a velocidade em Ajustes.</span>
+<button type="button" style="height:50px;padding:0 26px;border-radius:15px;border:1px solid #C5F24A;background:#C5F24A;color:#0B0C0D;font:600 15px/1 Archivo,'Helvetica Neue',sans-serif;flex-shrink:0;">Entendi</button>
+</div>
+</div></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#C5F24A","options":["#C5F24A","#6FD3F7","#F5A623","#E8674B"]},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { accent: this.props.accent ?? '#C5F24A' };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Ver PC — em repouso</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body { margin: 0; font-family: Archivo, 'Helvetica Neue', sans-serif; background: #0B0C0D; color: #ECEEF0; -webkit-font-smoothing: antialiased; }
+button { font-family: inherit; cursor: pointer; }
+a { color: #C5F24A; } a:hover { color: #D9FF77; }
+</style>
+</helmet>
+<div style="width:844px;height:390px;position:relative;background:#0B0C0D;overflow:hidden;">
+<div style="position:absolute;inset:0;background:#0E1418;overflow:hidden;">
+<div style="position:absolute;left:0;right:0;top:0;height:24px;background:#0A1015;display:flex;align-items:center;gap:14px;padding:0 14px;">
+<span style="font:400 10px/1 'JetBrains Mono',ui-monospace,monospace;color:#4C575E;">1 2 3 4 5</span>
+<span style="margin-left:auto;font:400 10px/1 'JetBrains Mono',ui-monospace,monospace;color:#4C575E;">qua 23 set · 14:27</span></div>
+<div style="position:absolute;left:40px;top:58px;width:330px;height:250px;border-radius:8px;border:1px solid #1D272D;background:#131B20;"></div>
+<div style="position:absolute;left:404px;top:58px;width:396px;height:250px;border-radius:8px;border:1px solid #1D272D;background:#0F161A;"></div>
+<div style="position:absolute;left:150px;top:150px;font:400 11px/1 'JetBrains Mono',ui-monospace,monospace;color:#39434A;letter-spacing:.14em;">[ TELA DO COMPUTADOR ]</div>
+</div>
+<div style="position:absolute;left:14px;top:34px;opacity:0.45;display:flex;align-items:center;gap:8px;height:30px;padding:0 12px;border-radius:15px;background:rgba(10,13,15,.7);border:1px solid rgba(255,255,255,.08);">
+<span style="width:7px;height:7px;border-radius:50%;background:#C5F24A;display:block;"></span>
+<span style="font:500 11px/1 'JetBrains Mono',ui-monospace,monospace;color:#99A1A8;">meu-pc · DP-1 · toque direto</span></div>
+<div style="position:absolute;left:0;top:70px;bottom:70px;width:34px;opacity:0.3;display:flex;flex-direction:column;justify-content:center;gap:6px;"><span style="width:14px;height:30px;border-radius:0 9px 9px 0;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font:500 11px/1 'JetBrains Mono',ui-monospace,monospace;color:#0B0C0D;"></span><span style="width:14px;height:30px;border-radius:0 9px 9px 0;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font:500 11px/1 'JetBrains Mono',ui-monospace,monospace;color:#0B0C0D;"></span><span style="width:26px;height:30px;border-radius:0 9px 9px 0;background:rgba(197,242,74,.85);display:flex;align-items:center;justify-content:center;font:500 11px/1 'JetBrains Mono',ui-monospace,monospace;color:#0B0C0D;">3</span><span style="width:14px;height:30px;border-radius:0 9px 9px 0;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font:500 11px/1 'JetBrains Mono',ui-monospace,monospace;color:#0B0C0D;"></span><span style="width:14px;height:30px;border-radius:0 9px 9px 0;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font:500 11px/1 'JetBrains Mono',ui-monospace,monospace;color:#0B0C0D;"></span><span style="width:14px;height:30px;border-radius:0 9px 9px 0;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font:500 11px/1 'JetBrains Mono',ui-monospace,monospace;color:#0B0C0D;"></span></div>
+<button type="button" aria-label="Abrir controles" style="position:absolute;right:16px;bottom:16px;width:60px;height:60px;border-radius:50%;border:1px solid rgba(197,242,74,.55);background:rgba(17,20,22,.72);display:flex;align-items:center;justify-content:center;"><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="#C5F24A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" ><path d="M5 3l14 8-6.2 1.6L9.6 19z"/></svg></button>
+<span style="position:absolute;right:76px;bottom:34px;font:400 10.5px/1 Archivo,'Helvetica Neue',sans-serif;color:rgba(236,238,240,.42);white-space:nowrap;">toque para os controles</span>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#C5F24A","options":["#C5F24A","#6FD3F7","#F5A623","#E8674B"]},"$preview":{"width":844,"height":390}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { accent: this.props.accent ?? '#C5F24A' };
+  }
+}
+</script>
+</body>
+</html>

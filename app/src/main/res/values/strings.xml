@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Omarchy Remote</string>
+    <string name="share_clipboard_label">Área de transferência do PC</string>
+    <string name="share_files_label">Enviar ao PC</string>
+    <string name="widget_agents_label">Agentes do herdr</string>
+    <string name="mirror_label">Omarchy Remote: notificações no PC</string>
+    <string name="tile_screen_label">Ver PC</string>
+    <string name="share_open_label">Abrir no PC</string>
+    <string name="tile_clip_label">Copiar pro PC</string>
+    <string name="tile_terminal_label">herdr no PC</string>
+    <string name="widget_description">Os agentes do herdr no PC: quantos esperam por você</string>
+</resources>

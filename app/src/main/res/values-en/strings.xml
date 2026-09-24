@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Omarchy Remote</string>
+    <string name="share_clipboard_label">PC clipboard</string>
+    <string name="share_files_label">Send to PC</string>
+    <string name="widget_agents_label">herdr agents</string>
+    <string name="mirror_label">Omarchy Remote: notifications on the PC</string>
+    <string name="tile_screen_label">View PC</string>
+    <string name="share_open_label">Open on PC</string>
+    <string name="tile_clip_label">Copy to PC</string>
+    <string name="tile_terminal_label">herdr on PC</string>
+    <string name="widget_description">The herdr agents on the PC: how many are waiting for you</string>
+</resources>

@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Sistema visual</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body { margin: 0; font-family: Archivo, 'Helvetica Neue', sans-serif; background: #0B0C0D; color: #ECEEF0; -webkit-font-smoothing: antialiased; }
+button { font-family: inherit; cursor: pointer; }
+a { color: #C5F24A; } a:hover { color: #D9FF77; }
+</style>
+</helmet>
+<div style="width:880px;height:600px;box-sizing:border-box;background:#0B0C0D;display:flex;flex-direction:column;gap:18px;padding:28px 32px;overflow:hidden;">
+<div style="display:flex;align-items:flex-end;justify-content:space-between;">
+<div><div style="font:700 30px/1 Archivo,'Helvetica Neue',sans-serif;color:#ECEEF0;letter-spacing:-.01em;">Omarchy Remote</div>
+<div style="font:400 14px/1 Archivo,'Helvetica Neue',sans-serif;color:#99A1A8;margin-top:8px;">Sistema visual — painel de instrumentos: grafite neutro, um único acento vivo, tipografia com caráter.</div></div>
+<div style="font:500 11px/1 'JetBrains Mono',ui-monospace,monospace;color:#808890;letter-spacing:.1em;">v2 · 2026</div>
+</div>
+<div style="height:1px;background:#2B3034;"></div>
+<div style="display:flex;gap:40px;">
+  <div style="flex-grow:1;min-width:0;display:flex;flex-direction:column;gap:14px;">
+    <div style="font:600 11px/1.2 Archivo,'Helvetica Neue',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#808890;margin-bottom:0px;">Cor</div>
+    <div style="display:grid;grid-template-columns:repeat(6, minmax(0,1fr));gap:10px;">
+      <div style="display:flex;flex-direction:column;gap:7px;">
+<div style="height:54px;border-radius:12px;background:#0B0C0D;border:1px solid rgba(255,255,255,.08);"></div>
+<div style="font:600 12px/1 Archivo,'Helvetica Neue',sans-serif;color:#ECEEF0;">Fundo</div>
+<div style="font:400 11px/1 'JetBrains Mono',ui-monospace,monospace;color:#808890;">#0B0C0D</div></div><div style="display:flex;flex-direction:column;gap:7px;">
+<div style="height:54px;border-radius:12px;background:#121517;border:1px solid rgba(255,255,255,.08);"></div>
+<div style="font:600 12px/1 Archivo,'Helvetica Neue',sans-serif;color:#ECEEF0;">Superfície 1</div>
+<div style="font:400 11px/1 'JetBrains Mono',ui-monospace,monospace;color:#808890;">#121517</div></div><div style="display:flex;flex-direction:column;gap:7px;">
+<div style="height:54px;border-radius:12px;background:#1D2124;border:1px solid rgba(255,255,255,.08);"></div>
+<div style="font:600 12px/1 Archivo,'Helvetica Neue',sans-serif;color:#ECEEF0;">Superfície 2</div>
+<div style="font:400 11px/1 'JetBrains Mono',ui-monospace,monospace;color:#808890;">#1D2124</div></div>
+      <div style="display:flex;flex-direction:column;gap:7px;">
+<div style="height:54px;border-radius:12px;background:#3A4045;border:1px solid rgba(255,255,255,.08);"></div>
+<div style="font:600 12px/1 Archivo,'Helvetica Neue',sans-serif;color:#ECEEF0;">Linha</div>
+<div style="font:400 11px/1 'JetBrains Mono',ui-monospace,monospace;color:#808890;">#3A4045</div></div><div style="display:flex;flex-direction:column;gap:7px;">
+<div style="height:54px;border-radius:12px;background:#ECEEF0;border:1px solid rgba(255,255,255,.08);"></div>
+<div style="font:600 12px/1 Archivo,'Helvetica Neue',sans-serif;color:#ECEEF0;">Texto</div>
+<div style="font:400 11px/1 'JetBrains Mono',ui-monospace,monospace;color:#808890;">#ECEEF0</div></div><div style="display:flex;flex-direction:column;gap:7px;">
+<div style="height:54px;border-radius:12px;background:#C5F24A;border:1px solid rgba(255,255,255,.08);"></div>
+<div style="font:600 12px/1 Archivo,'Helvetica Neue',sans-serif;color:#ECEEF0;">Acento</div>
+<div style="font:400 11px/1 'JetBrains Mono',ui-monospace,monospace;color:#808890;">#C5F24A</div></div>
+    </div>
+    <div style="font:400 12px/1.5 Archivo,'Helvetica Neue',sans-serif;color:#99A1A8;">O acento só aparece em três lugares: o ponto de conexão ativa, a tecla que está pressionada e a ação principal da tela. Tudo o mais é grafite — é o que faz o verde significar alguma coisa.</div>
+  </div>
+  <div style="width:280px;flex-shrink:0;display:flex;flex-direction:column;gap:14px;">
+    <div style="font:600 11px/1.2 Archivo,'Helvetica Neue',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#808890;margin-bottom:0px;">Tipografia</div>
+    <div style="font:700 34px/1 Archivo,'Helvetica Neue',sans-serif;color:#ECEEF0;">Archivo 700</div>
+    <div style="font:500 17px/1 Archivo,'Helvetica Neue',sans-serif;color:#ECEEF0;">Archivo 500 — rótulos</div>
+    <div style="font:400 14px/1.4 Archivo,'Helvetica Neue',sans-serif;color:#99A1A8;">Archivo 400 — texto de apoio</div>
+    <div style="font:400 14px/1 'JetBrains Mono',ui-monospace,monospace;color:#C5F24A;">JetBrains Mono — DP-1 · 1,4× · C8:89</div>
+  </div>
+</div>
+<div style="height:1px;background:#2B3034;"></div>
+<div style="display:flex;gap:40px;align-items:flex-start;">
+  <div style="flex-grow:1;display:flex;flex-direction:column;gap:12px;">
+    <div style="font:600 11px/1.2 Archivo,'Helvetica Neue',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#808890;margin-bottom:0px;">Controles</div>
+    <div style="display:grid;grid-template-columns:repeat(4, minmax(0, 1fr));gap:8px;"><button type="button" style="min-width:0;height:48px;padding:0 6px;border-radius:14px;border:1px solid #2B3034;background:#1D2124;color:#ECEEF0;font:500 15px/1 Archivo,'Helvetica Neue',sans-serif;display:flex;align-items:center;justify-content:center;gap:6px;overflow:hidden;">Tecla</button><button type="button" style="min-width:0;height:48px;padding:0 6px;border-radius:14px;border:1px solid #C5F24A;background:#C5F24A;color:#0B0C0D;font:500 15px/1 Archivo,'Helvetica Neue',sans-serif;display:flex;align-items:center;justify-content:center;gap:6px;overflow:hidden;">Ativa</button><button type="button" style="min-width:0;height:48px;padding:0 6px;border-radius:14px;border:1px solid #2B3034;background:#1D2124;color:#ECEEF0;font:500 14px/1 Archivo,'Helvetica Neue',sans-serif;display:flex;align-items:center;justify-content:center;gap:6px;overflow:hidden;">Esc</button><button aria-label="Backspace" type="button" style="min-width:0;height:48px;padding:0 6px;border-radius:14px;border:1px solid #2B3034;background:#1D2124;color:#ECEEF0;font:500 15px/1 Archivo,'Helvetica Neue',sans-serif;display:flex;align-items:center;justify-content:center;gap:6px;overflow:hidden;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ECEEF0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" ><path d="M20 5H9L3 12l6 7h11z"/><path d="M14 10l-4 4M10 10l4 4"/></svg></button></div>
+    <div style="display:flex;gap:8px;align-items:center;justify-content:flex-start;"><div style="display:flex;gap:4px;padding:4px;border-radius:15px;background:#121517;border:1px solid #2B3034;"><button type="button" style="flex-grow:1;min-width:0;height:44px;border-radius:12px;border:1px solid #C5F24A;background:rgba(197,242,74,.12);color:#C5F24A;font:600 14px/1 Archivo,'Helvetica Neue',sans-serif;display:flex;align-items:center;justify-content:center;padding:0 8px;overflow:hidden;">Bluetooth</button><button type="button" style="flex-grow:1;min-width:0;height:44px;border-radius:12px;border:1px solid transparent;background:transparent;color:#808890;font:600 14px/1 Archivo,'Helvetica Neue',sans-serif;display:flex;align-items:center;justify-content:center;padding:0 8px;overflow:hidden;">Rede</button></div></div>
+  </div>
+  <div style="width:280px;flex-shrink:0;display:flex;flex-direction:column;gap:12px;">
+    <div style="font:600 11px/1.2 Archivo,'Helvetica Neue',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#808890;margin-bottom:0px;">Medidas</div>
+    <div style="font:400 13px/1.7 Archivo,'Helvetica Neue',sans-serif;color:#99A1A8;">Alvo de toque mínimo 44 px · teclas 48 px · barra do mouse 56 px<br>Raio 12 / 14 / 16 / 22 px · espaçamento base 8 px<br>Margem lateral 16 px</div>
+  </div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#C5F24A","options":["#C5F24A","#6FD3F7","#F5A623","#E8674B"]},"$preview":{"width":880,"height":600}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { accent: this.props.accent ?? '#C5F24A' };
+  }
+}
+</script>
+</body>
+</html>

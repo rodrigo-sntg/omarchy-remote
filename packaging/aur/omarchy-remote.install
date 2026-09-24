@@ -1,0 +1,28 @@
+_user() {
+    local user="${SUDO_USER:-}"
+    [ -z "$user" ] && user=$(logname 2>/dev/null)
+    { [ -z "$user" ] || [ "$user" = "root" ]; } && user=$(awk -F: '$3 >= 1000 && $3 < 65534 { print $1; exit }' /etc/passwd)
+    echo "$user"
+}
+
+post_install() {
+    modprobe uinput 2>/dev/null
+    udevadm control --reload 2>/dev/null && udevadm trigger --subsystem-match=misc 2>/dev/null
+    local user; user=$(_user)
+    if [ -n "$user" ] && [ "$user" != "root" ]; then
+        echo "  󰄜  Setting up Omarchy Remote for $user"
+        su "$user" -c "XDG_RUNTIME_DIR=/run/user/$(id -u "$user") DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u "$user")/bus /usr/bin/omarchy-remote-setup --quiet" || true
+    fi
+    echo "  󰄜  Pair your phone: omarchy-remote-setup (or Super+Space › Phone › Pair phone)"
+}
+
+post_upgrade() {
+    post_install
+}
+
+pre_remove() {
+    local user; user=$(_user)
+    if [ -n "$user" ] && [ "$user" != "root" ]; then
+        su "$user" -c "XDG_RUNTIME_DIR=/run/user/$(id -u "$user") DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u "$user")/bus /usr/bin/omarchy-remote-remove" || true
+    fi
+}

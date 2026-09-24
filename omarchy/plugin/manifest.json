@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "rodrigo.phone",
+  "name": "Phone",
+  "version": "1.0.0",
+  "author": "Rodrigo",
+  "license": "MIT",
+  "description": "Omarchy Remote: the phone as keyboard, trackpad, screen and herdr remote.",
+  "kinds": ["bar-widget"],
+  "entryPoints": {
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "Phone",
+    "description": "Whether the phone is connected, its battery and the herdr agents waiting; click for the Phone menu.",
+    "category": "System",
+    "aliases": ["phone", "omarchy-remote"],
+    "allowMultiple": false,
+    "defaultSection": "right"
+  }
+}

@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Ajustes</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body { margin: 0; font-family: Archivo, 'Helvetica Neue', sans-serif; background: #0B0C0D; color: #ECEEF0; -webkit-font-smoothing: antialiased; }
+button { font-family: inherit; cursor: pointer; }
+a { color: #C5F24A; } a:hover { color: #D9FF77; }
+</style>
+</helmet>
+<div style="width:390px;height:844px;box-sizing:border-box;background:#0B0C0D;display:flex;flex-direction:column;overflow:hidden;position:relative;"><div style="padding:14px 14px 0;opacity:.22;pointer-events:none;display:flex;flex-direction:column;gap:11px;height:70px;overflow:hidden;"><div style="display:flex;align-items:center;gap:10px;height:40px;flex-shrink:0;">
+<span style="width:8px;height:8px;border-radius:50%;background:#C5F24A;box-shadow:0 0 0 4px rgba(197,242,74,.13);flex-shrink:0;"></span>
+<button type="button" style="min-width:0;height:40px;padding:0;border:0;background:transparent;display:flex;align-items:baseline;gap:8px;">
+<span style="font:600 15px/1 Archivo,'Helvetica Neue',sans-serif;color:#ECEEF0;white-space:nowrap;">meu-pc</span>
+<span style="font:400 11px/1 'JetBrains Mono',ui-monospace,monospace;color:#808890;white-space:nowrap;">Rede · Tailscale</span>
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#808890" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" ><path d="M6 9l6 6 6-6"/></svg></button>
+
+<button type="button" aria-label="Ajustes" style="margin-left:auto;width:44px;height:44px;flex-shrink:0;border-radius:14px;border:1px solid transparent;background:transparent;display:flex;align-items:center;justify-content:center;"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#99A1A8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" ><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg></button>
+</div><div style="flex-shrink:0;border-radius:20px;border:1px solid #2B3034;background:#16191B;padding:10px 10px 6px;display:flex;flex-direction:column;gap:4px;">
+<div style="position:relative;height:124px;border-radius:14px;border:1px solid #2B3034;background:#121517;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 2px 8px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.04);">
+<span style="position:absolute;left:12px;top:10px;font:500 9.5px/1 'JetBrains Mono',ui-monospace,monospace;letter-spacing:.14em;color:#808890;">ONDE ESTÁ O CURSOR</span>
+<button type="button" aria-label="Ver PC" style="position:absolute;right:6px;top:5px;width:30px;height:30px;border-radius:9px;border:1px solid #2B3034;background:transparent;padding:0;display:flex;align-items:center;justify-content:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#99A1A8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" ><path d="M9 4H4v5M15 4h5v5M15 20h5v-5M9 20H4v-5"/></svg></button>
+<div style="display:flex;align-items:flex-end;gap:12px;margin-top:26px;">
+<div style="display:flex;flex-direction:column;align-items:center;gap:7px;">
+<div style="position:relative;width:132px;height:56px;border-radius:6px;border:1.5px solid #3A4045;background:#1D2124;">
+<span style="position:absolute;right:6px;top:5px;font:500 10px/1 'JetBrains Mono',ui-monospace,monospace;color:#808890;">1</span></div>
+<span style="font:400 9.5px/1 'JetBrains Mono',ui-monospace,monospace;color:#808890;letter-spacing:.04em;">HDMI-A-1</span></div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:7px;">
+<div style="position:relative;width:99px;height:56px;border-radius:6px;border:1.5px solid rgba(197,242,74,.6);background:rgba(197,242,74,.05);">
+<span style="position:absolute;right:6px;top:5px;font:500 10px/1 'JetBrains Mono',ui-monospace,monospace;color:#C5F24A;">2</span><span style="position:absolute;left:64%;top:42%;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;background:#C5F24A;box-shadow:0 0 0 5px rgba(197,242,74,.18);display:block;"></span></div>
+<span style="font:400 9.5px/1 'JetBrains Mono',ui-monospace,monospace;color:#99A1A8;letter-spacing:.04em;">DP-1</span></div>
+<button type="button" style="display:flex;flex-direction:column;align-items:center;gap:7px;border:0;background:transparent;padding:0;">
+<span style="width:40px;height:56px;border-radius:6px;border:1.5px dashed #3A4045;display:flex;align-items:center;justify-content:center;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#808890" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" ><path d="M12 5v14M5 12h14"/></svg></span>
+<span style="font:400 9.5px/1 Archivo,'Helvetica Neue',sans-serif;color:#808890;">tela extra</span></button>
+</div></div>
+<div style="display:flex;align-items:center;gap:2px;height:36px;flex-shrink:0;">
+<span style="font:600 9.5px/1 Archivo,'Helvetica Neue',sans-serif;letter-spacing:.12em;color:#808890;width:26px;flex-shrink:0;">WS</span>
+<button type="button" style="min-width:0;flex-grow:1;height:34px;padding:0;border-radius:10px;border:1px solid transparent;background:transparent;color:#99A1A8;font:500 13px/1 'JetBrains Mono',ui-monospace,monospace;">1</button><button type="button" style="min-width:0;flex-grow:1;height:34px;padding:0;border-radius:10px;border:1px solid #C5F24A;background:rgba(197,242,74,.16);color:#C5F24A;font:500 13px/1 'JetBrains Mono',ui-monospace,monospace;">2</button><button type="button" style="min-width:0;flex-grow:1;height:34px;padding:0;border-radius:10px;border:1px solid transparent;background:transparent;color:#99A1A8;font:500 13px/1 'JetBrains Mono',ui-monospace,monospace;">3</button><button type="button" aria-label="Novo workspace" style="width:34px;height:34px;flex-shrink:0;border-radius:10px;border:1px solid transparent;background:transparent;display:flex;align-items:center;justify-content:center;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#808890" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" ><path d="M12 5v14M5 12h14"/></svg></button></div>
+</div></div><div style="margin-top:auto;background:#16191B;border:1px solid #2B3034;border-bottom:0;border-radius:28px 28px 0 0;padding:10px 18px 22px;display:flex;flex-direction:column;gap:16px;box-shadow:0 -24px 48px rgba(0,0,0,.6);"><div style="width:38px;height:4px;border-radius:2px;background:#3A4045;margin:0 auto 2px;"></div>
+<div><div style="font:600 21px/1.1 Archivo,'Helvetica Neue',sans-serif;color:#ECEEF0;">Ajustes</div></div>
+<div style="display:flex;flex-direction:column;gap:12px;">
+<div style="font:600 11px/1.2 Archivo,'Helvetica Neue',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#808890;margin-bottom:0px;">Trackpad</div>
+<div style="display:flex;flex-direction:column;gap:10px;">
+<div style="display:flex;align-items:baseline;justify-content:space-between;">
+<span style="font:500 14px/1 Archivo,'Helvetica Neue',sans-serif;color:#ECEEF0;">Sensibilidade</span>
+<span style="font:500 14px/1 'JetBrains Mono',ui-monospace,monospace;color:#C5F24A;">1,2×</span>
+</div>
+<div style="position:relative;height:22px;display:flex;align-items:center;">
+<div style="position:absolute;left:0;right:0;height:6px;border-radius:3px;background:#1D2124;"></div>
+<div style="position:absolute;left:0;width:40%;height:6px;border-radius:3px;background:#C5F24A;"></div>
+<div style="position:absolute;left:calc(40% - 11px);width:22px;height:22px;border-radius:50%;background:#C5F24A;border:3px solid #0B0C0D;"></div>
+</div>
+</div>
+<div style="display:flex;align-items:center;gap:14px;min-height:44px;">
+<label style="flex-grow:1;min-width:0;"><span style="font:500 15px/1.2 Archivo,'Helvetica Neue',sans-serif;color:#ECEEF0;">Rolagem natural</span><div style="font:400 12px/1.35 Archivo,'Helvetica Neue',sans-serif;color:#808890;margin-top:3px;">Dedos para cima rolam a página para baixo</div></label>
+<span style="position:relative;width:48px;height:28px;border-radius:14px;flex-shrink:0;background:#C5F24A;border:1px solid #C5F24A;">
+<span style="position:absolute;top:2px;left:calc(100% - 22px);width:20px;height:20px;border-radius:50%;background:#0B0C0D;"></span></span>
+</div>
+<div style="display:flex;align-items:center;gap:14px;min-height:44px;">
+<label style="flex-grow:1;min-width:0;"><span style="font:500 15px/1.2 Archivo,'Helvetica Neue',sans-serif;color:#ECEEF0;">Tocar para clicar</span></label>
+<span style="position:relative;width:48px;height:28px;border-radius:14px;flex-shrink:0;background:#C5F24A;border:1px solid #C5F24A;">
+<span style="position:absolute;top:2px;left:calc(100% - 22px);width:20px;height:20px;border-radius:50%;background:#0B0C0D;"></span></span>
+</div>
+</div>
+<div style="height:1px;background:#2B3034;"></div>
+<div style="display:flex;flex-direction:column;gap:9px;">
+<div style="font:600 11px/1.2 Archivo,'Helvetica Neue',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#808890;margin-bottom:0px;">Na tela do PC</div>
+<div style="display:flex;gap:4px;padding:4px;border-radius:15px;background:#121517;border:1px solid #2B3034;"><button type="button" style="flex-grow:1;min-width:0;height:44px;border-radius:12px;border:1px solid #C5F24A;background:rgba(197,242,74,.12);color:#C5F24A;font:600 14px/1 Archivo,'Helvetica Neue',sans-serif;display:flex;align-items:center;justify-content:center;padding:0 8px;overflow:hidden;">Trackpad</button><button type="button" style="flex-grow:1;min-width:0;height:44px;border-radius:12px;border:1px solid transparent;background:transparent;color:#808890;font:600 14px/1 Archivo,'Helvetica Neue',sans-serif;display:flex;align-items:center;justify-content:center;padding:0 8px;overflow:hidden;">Toque direto</button></div>
+<div style="font:400 12.5px/1.45 Archivo,'Helvetica Neue',sans-serif;color:#808890;">Trackpad: deslize em qualquer lugar para mover. Toque direto: toque onde quer clicar.</div>
+</div>
+<div style="height:1px;background:#2B3034;"></div>
+<div style="display:flex;flex-direction:column;gap:9px;">
+<div style="font:600 11px/1.2 Archivo,'Helvetica Neue',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#808890;margin-bottom:0px;">Layout ativo no computador</div>
+<div style="display:flex;gap:4px;padding:4px;border-radius:15px;background:#121517;border:1px solid #2B3034;"><button type="button" style="flex-grow:1;min-width:0;height:44px;border-radius:12px;border:1px solid #C5F24A;background:rgba(197,242,74,.12);color:#C5F24A;font:600 13.5px/1 Archivo,'Helvetica Neue',sans-serif;display:flex;align-items:center;justify-content:center;padding:0 8px;overflow:hidden;">Português · ABNT2</button><button type="button" style="flex-grow:1;min-width:0;height:44px;border-radius:12px;border:1px solid transparent;background:transparent;color:#808890;font:600 13.5px/1 Archivo,'Helvetica Neue',sans-serif;display:flex;align-items:center;justify-content:center;padding:0 8px;overflow:hidden;">Inglês · US</button></div>
+</div>
+<div style="display:flex;gap:8px;">
+<button type="button" style="flex-grow:1;min-width:0;height:50px;padding:0 6px;border-radius:13px;border:1px solid #2B3034;background:#1D2124;color:#ECEEF0;font:500 14px/1 Archivo,'Helvetica Neue',sans-serif;box-shadow:inset 0 1px 0 rgba(255,255,255,.06), 0 1px 2px rgba(0,0,0,.5);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;overflow:hidden;"><span style="display:flex;align-items:center;gap:6px;">Editar atalhos</span></button>
+<button type="button" style="flex-grow:1;min-width:0;height:50px;padding:0 6px;border-radius:13px;border:1px solid #2B3034;background:#1D2124;color:#ECEEF0;font:500 14px/1 Archivo,'Helvetica Neue',sans-serif;box-shadow:inset 0 1px 0 rgba(255,255,255,.06), 0 1px 2px rgba(0,0,0,.5);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;overflow:hidden;"><span style="display:flex;align-items:center;gap:6px;">Dicas de gestos</span></button>
+</div>
+</div></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#C5F24A","options":["#C5F24A","#6FD3F7","#F5A623","#E8674B"]},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { accent: this.props.accent ?? '#C5F24A' };
+  }
+}
+</script>
+</body>
+</html>

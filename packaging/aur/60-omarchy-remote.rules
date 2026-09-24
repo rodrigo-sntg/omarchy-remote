@@ -1,0 +1,2 @@
+# Omarchy Remote: the logged-in user may create the virtual keyboard, mouse and pen (uinput).
+KERNEL=="uinput", SUBSYSTEM=="misc", TAG+="uaccess", OPTIONS+="static_node=uinput"

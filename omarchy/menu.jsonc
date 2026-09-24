@@ -1,0 +1,13 @@
+  // omarchy-remote: the Phone menu (installed by omarchy-remote/omarchy/install.sh)
+  "phone": {"icon":"󰄜","label":"Phone","description":"Omarchy Remote"},
+  "phone.pair": {"icon":"󰐲","label":"Pair phone (QR)","action":"omarchy-launch-floating-terminal-with-presentation omarchy-remote pair"},
+  "phone.clipboard": {"icon":"󰅌","label":"Send clipboard to phone","when":"omarchy-remote connected","action":"omarchy-remote send-clipboard"},
+  "phone.file": {"icon":"󰈔","label":"Send file to phone","when":"omarchy-remote connected","action":"omarchy-remote send-file"},
+  "phone.shot": {"icon":"󰹑","label":"Screenshot to phone","when":"omarchy-remote connected","action":"omarchy-remote screenshot"},
+  "phone.screen": {"icon":"󰍹","label":"Show PC screen on phone","when":"omarchy-remote connected","action":"omarchy-remote open screen"},
+  "phone.extra": {"icon":"󰍺","label":"Use phone as extra display","when":"omarchy-remote connected","action":"omarchy-remote open extra"},
+  "phone.ring": {"icon":"󰂞","label":"Find phone (ring)","when":"omarchy-remote connected","action":"omarchy-remote ring"},
+  "phone.devices": {"icon":"󰒍","label":"Paired phones","action":"omarchy-launch-floating-terminal-with-presentation omarchy-remote devices"},
+  "phone.newcode": {"icon":"󰌆","label":"New pairing code","action":"omarchy-launch-floating-terminal-with-presentation omarchy-remote new-code"},
+  "phone.terminal": {"icon":"","label":"Open herdr on phone","when":"omarchy-remote connected","action":"omarchy-remote open terminal"},
+  // omarchy-remote end

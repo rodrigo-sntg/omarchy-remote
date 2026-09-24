@@ -1,0 +1,177 @@
+#!/usr/bin/env python3
+"""omarchy-remote: talk to the running host from Omarchy (menu, hook, bar widget, terminal).
+
+  omarchy-remote status               phone connected? battery?
+  omarchy-remote connected            exit 0 only when a phone is connected (menu `when:`)
+  omarchy-remote pair                 QR code for the app (host name + pairing code)
+  omarchy-remote send-clipboard       the PC's clipboard to the phone
+  omarchy-remote theme-changed        push the active Omarchy theme to the phone
+  omarchy-remote theme-preview <tema> show an installed theme on the phone, without applying it
+  omarchy-remote open screen|extra|terminal
+  omarchy-remote send-file [arquivo…]  files to the phone (no argument: pick them in a window)
+  omarchy-remote screenshot [--tela]   a print to the phone: an area you select, or all monitors
+  omarchy-remote ring [--stop]         make the phone ring loudly, even on silent (find it)
+  omarchy-remote devices               the phones that connected; revoke one with: devices revoke <nome>
+  omarchy-remote new-code              a new pairing code (every phone pairs again) and its QR
+Standard library only: runs with the system python3.
+"""
+import json
+import os
+import shutil
+import socket
+import subprocess
+import sys
+import time
+from pathlib import Path
+from urllib.parse import urlencode
+
+# OMARCHY_REMOTE_RUN_DIR: point at the --dev-loopback instance (…/omarchy-remote-dev) when testing.
+RUN_DIR = Path(os.environ.get("OMARCHY_REMOTE_RUN_DIR") or
+               Path(os.environ.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}") / "omarchy-remote")
+TOKEN = Path.home() / ".config" / "omarchy-remote" / "token"
+
+
+def call(cmd: dict) -> dict:
+    try:
+        with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
+            s.settimeout(5)
+            s.connect(str(RUN_DIR / "control.sock"))
+            s.sendall(json.dumps(cmd, ensure_ascii=False).encode() + b"\n")
+            return json.loads(s.makefile().readline() or "{}")
+    except OSError:
+        return {"ok": False, "error": "O serviço do Omarchy Remote não está rodando."}
+
+
+def osd(message: str):
+    if shutil.which("omarchy"):
+        subprocess.run(["omarchy", "osd", "-m", message], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+def fail(message: str, show: bool = True):
+    print(message, file=sys.stderr)
+    if show:
+        osd(message)
+    sys.exit(1)
+
+
+def pair():
+    status = json.loads(subprocess.run(["tailscale", "status", "--json"], capture_output=True, text=True, check=True).stdout)
+    host = status["Self"]["DNSName"].rstrip(".")
+    try:
+        token = TOKEN.read_text().strip()
+    except OSError:
+        fail("Sem código de pareamento: inicie o serviço uma vez (host/run.sh).")
+    uri = "keypad://pair?" + urlencode({"host": host, "code": token})
+    print("No celular: Computador → Rede → Ler QR\n")
+    subprocess.run(["qrencode", "-t", "ANSIUTF8", "-m", "2", uri], check=True)
+    print(f"\nPC: {host}")
+
+
+def send_files(paths: list[str]):
+    if not paths:
+        picked = subprocess.run(["zenity", "--file-selection", "--multiple", "--separator=\n", "--title=Enviar ao celular"],
+                                capture_output=True, text=True)
+        paths = [p for p in picked.stdout.splitlines() if p]
+        if not paths:
+            sys.exit(0)  # cancelled
+    for path in paths:
+        reply = call({"cmd": "send-file", "path": os.path.abspath(path)})
+        if not reply.get("ok"):
+            fail(reply.get("error", "Erro."))
+    osd("Enviado ao celular" if len(paths) == 1 else f"{len(paths)} arquivos enviados ao celular")
+
+
+def screenshot(whole: bool):
+    folder = Path(os.environ.get("XDG_RUNTIME_DIR") or "/tmp") / "omarchy-remote-shots"
+    folder.mkdir(mode=0o700, exist_ok=True)
+    path = folder / time.strftime("print-%Y%m%d-%H%M%S.png")
+    args = ["grim", str(path)]
+    if not whole:
+        area = subprocess.run(["slurp"], capture_output=True, text=True)
+        if area.returncode != 0 or not area.stdout.strip():
+            sys.exit(0)  # cancelled
+        args = ["grim", "-g", area.stdout.strip(), str(path)]
+    if subprocess.run(args).returncode != 0:
+        fail("Não consegui tirar o print.")
+    reply = call({"cmd": "send-file", "path": str(path), "temporary": True, "shot": True})
+    if not reply.get("ok"):
+        path.unlink(missing_ok=True)
+        fail(reply.get("error", "Erro."))
+    osd("Print enviado ao celular")
+
+
+def main(argv: list[str]):
+    command = argv[0] if argv else "status"
+    if command == "status":
+        reply = call({"cmd": "status"})
+        if not reply.get("ok"):
+            fail(reply.get("error", "Erro."), show=False)
+        if reply["connected"]:
+            battery = f" · {reply['battery']}%" if reply.get("battery") is not None else ""
+            print(f"Conectado: {reply['phone']}{battery}")
+        else:
+            print("Nenhum celular conectado.")
+    elif command == "connected":
+        sys.exit(0 if call({"cmd": "status"}).get("connected") else 1)
+    elif command == "pair":
+        pair()
+    elif command == "send-clipboard":
+        try:  # text only: an image on the clipboard is not for the phone
+            text = subprocess.run(["wl-paste", "-n", "-t", "text"], capture_output=True).stdout.decode()
+        except (OSError, UnicodeDecodeError):
+            text = ""
+        if not text:
+            fail("A área de transferência está vazia (ou não é texto).")
+        reply = call({"cmd": "clipboard", "text": text})
+        if not reply.get("ok"):
+            fail(reply.get("error", "Erro."))
+        osd("Área de transferência enviada ao celular")
+    elif command == "theme-changed":
+        call({"cmd": "theme"})  # quiet: a hook must never fail a theme change
+    elif command == "theme-preview" and len(argv) == 2:
+        reply = call({"cmd": "theme-preview", "slug": argv[1].lower().replace(" ", "-")})
+        if not reply.get("ok"):
+            fail(reply.get("error", "Erro."), show=False)
+    elif command == "send-file":
+        send_files(argv[1:])
+    elif command == "screenshot" and len(argv) <= 2:
+        screenshot(whole="--tela" in argv[1:])
+    elif command == "ring" and len(argv) <= 2:
+        stop = "--stop" in argv[1:]
+        reply = call({"cmd": "ring", "stop": stop})
+        if not reply.get("ok"):
+            fail(reply.get("error", "Erro."))
+        osd("O celular parou de tocar" if stop else "Tocando o celular…")
+    elif command == "devices" and len(argv) == 1:
+        reply = call({"cmd": "devices"})
+        if not reply.get("ok"):
+            fail(reply.get("error", "Erro."), show=False)
+        if not reply["devices"]:
+            print("Nenhum celular conectou ainda.")
+        for d in reply["devices"]:
+            short = d["name"].split(".")[0]
+            when = time.strftime("%d/%m %H:%M", time.localtime(d.get("last", 0)))
+            mark = " (conectado agora)" if short == reply.get("current") else ""
+            print(f"{short:28} {'REVOGADO' if d['revoked'] else 'último acesso ' + when}{mark}")
+    elif command == "devices" and len(argv) == 3 and argv[1] == "revoke":
+        reply = call({"cmd": "revoke", "name": argv[2]})
+        if not reply.get("ok"):
+            fail(reply.get("error", "Erro."), show=False)
+        print(f"{argv[2]} não conecta mais, mesmo com o código de pareamento.")
+    elif command == "new-code":
+        reply = call({"cmd": "new-code"})
+        if not reply.get("ok"):
+            fail(reply.get("error", "Erro."), show=False)
+        print("Código novo: os celulares pareados precisam ler o QR de novo.\n")
+        pair()
+    elif command == "open" and len(argv) == 2:
+        reply = call({"cmd": "open", "what": argv[1]})
+        if not reply.get("ok"):
+            fail(reply.get("error", "Erro."))
+    else:
+        print(__doc__.strip())
+        sys.exit(2)
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])

@@ -1,0 +1,16 @@
+#!/bin/bash
+# omarchy-remote-remove: undoes omarchy-remote-setup for this user (the pairing code and the list of
+# phones in ~/.config/omarchy-remote stay, in case you install again; delete that folder to forget them).
+set -uo pipefail
+share=/usr/share/omarchy-remote
+[[ -d $share ]] || share=$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd -P)
+config=${XDG_CONFIG_HOME:-$HOME/.config}
+systemctl --user disable --now omarchy-remote-host.service >/dev/null 2>&1
+rm -f "$HOME/.config/systemd/user/omarchy-remote-host.service"
+systemctl --user daemon-reload
+omarchy-plugin-disable rodrigo.phone >/dev/null 2>&1
+rm -rf "$config/omarchy/plugins/rodrigo.phone"
+python3 "$share/omarchy/menu_merge.py" --remove "$config/omarchy/extensions/omarchy-menu.jsonc"
+rm -f "$HOME/.config/omarchy/hooks/theme-set.d/omarchy-remote" "$HOME/.local/bin/omarchy-remote"
+omarchy-shell -q shell rescanPlugins >/dev/null 2>&1 || true
+echo "Omarchy Remote removido deste usuário."
