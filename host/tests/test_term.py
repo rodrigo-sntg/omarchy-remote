@@ -6,6 +6,7 @@ import pytest
 from aiohttp import WSMsgType
 from aiohttp.test_utils import TestClient, TestServer
 
+from tests.controller import controller
 from keypad_host.server import TOKEN_HEADER, create_app
 from keypad_host.term import TermError, herdr_command, parse_term_resize, parse_term_start, winsize
 from tests.test_server import PHONE, TAILNET, TOKEN
@@ -50,7 +51,7 @@ def run(scenario, term_command, term_window=None):
 
         extra = {"term_window": term_window} if term_window else {}
         app = create_app(FakeInjector(), {"samsung-sm-s928b"}, TAILNET, TOKEN, whois, term_command=term_command, **extra)
-        async with TestClient(TestServer(app)) as client:
+        async with TestClient(TestServer(app)) as client, controller(client):
             await scenario(client)
 
     asyncio.run(main())

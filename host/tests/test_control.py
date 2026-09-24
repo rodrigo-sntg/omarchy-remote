@@ -128,7 +128,7 @@ def test_devices_can_be_listed_revoked_and_the_code_renewed(tmp_path):
     hub.devices.seen("meu-celular.tailnet.ts.net")
     hub.kicked, hub.renewed = 0, 0
 
-    def kick():
+    def kick(device=None):
         hub.kicked += 1
 
     def renew():

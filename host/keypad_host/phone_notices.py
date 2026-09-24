@@ -15,7 +15,9 @@ def notify_args(n: dict) -> list[str]:
     # can be answered opens the reply box; any other is dismissed on the phone (seen).
     args.append("--action=default=Responder" if n.get("reply") else "--action=default=Dispensar")
     title = f"{n['app']} · {n['title']}" if n.get("title") else n["app"]
-    return args + [title, n.get("text") or ""]
+    # The text comes from anyone who can message the phone: after "--" it is only text. Without it,
+    # a message like "--hint=string:omarchy-exec-argv:[...]" became an option (a command run on click).
+    return args + ["--", title, n.get("text") or ""]
 
 
 async def notify_send(args):

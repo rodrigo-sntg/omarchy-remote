@@ -34,7 +34,7 @@ import java.util.concurrent.TimeUnit
  * where all state lives; each connection gets a fresh [NetworkSession], so nothing is replayed.
  */
 class NetworkController(private val scope: CoroutineScope) {
-    private val client = OkHttpClient.Builder().connectTimeout(5, TimeUnit.SECONDS).build()
+    private val client = com.sandevsystems.omarchyremote.network.TailnetDns.client().connectTimeout(5, TimeUnit.SECONDS).build()
     private val main = Handler(Looper.getMainLooper())
     private val _state = MutableStateFlow<ConnectionState>(Ready)
     val state: StateFlow<ConnectionState> = _state.asStateFlow()

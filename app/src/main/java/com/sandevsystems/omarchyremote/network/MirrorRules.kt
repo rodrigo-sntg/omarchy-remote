@@ -23,5 +23,10 @@ object MirrorRules {
         return true
     }
 
+    /** The PC may answer or dismiss only a notification this phone forwarded to it, while mirroring is
+     *  on and its app not turned off: never any other notification on the phone. */
+    fun mayAnswer(key: String, sentKeys: Set<String>, enabled: Boolean, pkg: String, excluded: Set<String>): Boolean =
+        enabled && key in sentKeys && pkg !in excluded
+
     fun clip(text: String, limit: Int) = if (text.length <= limit) text else text.take(limit)
 }

@@ -1,5 +1,6 @@
 import pytest
 
+from tests.controller import controller
 from keypad_host.display import DisplayError, Geometry
 from keypad_host.pen import PEN_MAX, PRESSURE_MAX, parse_pen, pen_position
 
@@ -49,7 +50,7 @@ def test_pen_events_reach_the_pen_device_over_the_video_channel():
 
         app = create_app(MovingInjector(hyprland), {"samsung-sm-s928b"}, TAILNET, TOKEN, whois, hyprland=hyprland, capture=capture,
                          pen=lambda: pen)
-        async with TestClient(TestServer(app)) as client:
+        async with TestClient(TestServer(app)) as client, controller(client):
             ws = await client.ws_connect("/v1/screen", headers={TOKEN_HEADER: TOKEN})
             await ws.receive_json()
             await ws.send_json({"type": "screen.start", "monitor": "DP-1", "maxWidth": 2340, "maxHeight": 1080})

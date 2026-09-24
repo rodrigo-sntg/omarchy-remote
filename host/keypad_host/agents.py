@@ -109,7 +109,7 @@ class AgentCommands:
         real = os.path.realpath(cwd)
         if not os.path.isdir(real) or not (real == str(home) or real.startswith(str(home) + os.sep)):
             raise HerdrError("invalid_cwd", "Essa pasta não está no seu usuário do PC.")
-        label = os.path.basename(real.rstrip("/")) or "home"
+        label = tab_label(real)
         workspace = next((p.get("workspace_id") for p in await self.herdr.panes() if p.get("cwd") == real and p.get("workspace_id")), None)
         pane = await self.herdr.create_tab(workspace, real, label) if workspace else await self.herdr.create_workspace(real, label)
         name = re.sub(r"[^a-z0-9-]", "-", f"{kind}-{label}".lower())[:24].strip("-") + "-" + secrets.token_hex(2)
@@ -207,3 +207,8 @@ class Follower:
                     await self.send({"type": "agent.items", "id": target, "items": items, "end": offset})
         except (OSError, ConnectionResetError, RuntimeError) as error:
             log.info("stopped following %s: %s", target, error)
+
+
+def tab_label(path: str) -> str:
+    """The herdr tab's name: the folder's, never starting with "-" (herdr would read it as an option)."""
+    return os.path.basename(path.rstrip("/")).lstrip("-") or "home"

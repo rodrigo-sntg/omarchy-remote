@@ -33,8 +33,9 @@ class AgentNotifier(private val context: Context) {
 
     /**
      * An agent that needs the person or finished. From its screen ([notice]): a permission request
-     * gets Permitir / Negar / Responder (answered from the notification, even on the lock screen);
-     * a finished agent, the start of its reply and Responder.
+     * gets Permitir / Negar / Responder; a finished agent, the start of its reply and Responder.
+     * Every answer asks to unlock the phone first (someone holding a locked phone approves nothing),
+     * and on the lock screen only "an agent needs you" shows, not the command or the reply.
      */
     fun notify(agent: Agent, notice: AgentNotice = AgentNotice.of(agent, null)) {
         if (Build.VERSION.SDK_INT >= 33 &&
@@ -54,17 +55,27 @@ class AgentNotifier(private val context: Context) {
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
             .setAutoCancel(true)
             .setContentIntent(open)
-        notice.allow?.let { builder.addAction(0, tr("Permitir", "Allow"), keysIntent(agent.id, it, tr("Permitido", "Allowed"))) }
-        notice.deny?.let { builder.addAction(0, tr("Negar", "Deny"), keysIntent(agent.id, it, tr("Negado", "Denied"))) }
+            .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+            .setPublicVersion(
+                NotificationCompat.Builder(context, CHANNEL).setSmallIcon(R.drawable.ic_keypad)
+                    .setContentTitle(tr("Um agente precisa de você", "An agent needs you")).build(),
+            )
+        notice.allow?.let { builder.addAction(locked(tr("Permitir", "Allow"), keysIntent(agent.id, it, tr("Permitido", "Allowed")))) }
+        notice.deny?.let { builder.addAction(locked(tr("Negar", "Deny"), keysIntent(agent.id, it, tr("Negado", "Denied")))) }
         if (agent.status == "done" || notice.replyAfter != null) {
             val input = RemoteInput.Builder(AgentActionReceiver.REPLY).setLabel(tr("Responder ao ${AgentsText.kindName(agent.kind)}", "Reply to ${AgentsText.kindName(agent.kind)}")).build()
             val intent = Intent(context, AgentActionReceiver::class.java).setAction(AgentActionReceiver.ACTION_REPLY)
                 .putExtra(AgentActionReceiver.AGENT, agent.id).putExtra(AgentActionReceiver.KEY, notice.replyAfter)
             val pending = PendingIntent.getBroadcast(context, ("reply" + agent.id).hashCode(), intent, PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
-            builder.addAction(NotificationCompat.Action.Builder(0, tr("Responder", "Reply"), pending).addRemoteInput(input).setAllowGeneratedReplies(false).build())
+            builder.addAction(NotificationCompat.Action.Builder(0, tr("Responder", "Reply"), pending).addRemoteInput(input)
+                .setAllowGeneratedReplies(false).setAuthenticationRequired(true).build())
         }
         manager.notify(agent.id.hashCode(), builder.build())
     }
+
+    /** An action that asks to unlock the phone before it runs (Android 12+; older ones: the receiver checks). */
+    private fun locked(label: String, intent: PendingIntent) =
+        NotificationCompat.Action.Builder(0, label, intent).setAuthenticationRequired(true).build()
 
     private fun keysIntent(id: String, key: String, done: String): PendingIntent {
         val intent = Intent(context, AgentActionReceiver::class.java).setAction(AgentActionReceiver.ACTION_KEYS)

@@ -4,6 +4,7 @@ import asyncio
 import os
 
 DIFF_LIMIT = 60_000
+HOME = None  # the user's home (tests set it): diffs are only read inside it
 COMMITS = 8
 
 
@@ -54,7 +55,9 @@ async def file_diff(cwd: str, path: str) -> str:
     """The file's changes against the last commit (a new file: its content as added lines)."""
     root = os.path.realpath(cwd)
     real = os.path.realpath(os.path.join(root, path))
-    if not real.startswith(root + os.sep):
+    home = os.path.realpath(str(HOME or os.path.expanduser("~")))
+    # Inside the agent's folder, and that folder inside the home (an agent started in / can't read /etc).
+    if not real.startswith(root + os.sep) or not (root == home or root.startswith(home + os.sep)):
         return ""
     code, diff = await _git(cwd, "diff", "HEAD", "--", path)
     if code == 0 and diff.strip():

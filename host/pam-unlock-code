@@ -1,5 +1,6 @@
-#!/usr/bin/python3
-"""PAM check for Omarchy Remote (pam_exec expose_authtok): succeeds only when what was typed on the
+#!/usr/bin/python3 -I
+"""(-I: isolated, so the user's own Python modules and PYTHON* variables are never loaded here.)
+PAM check for Omarchy Remote (pam_exec expose_authtok): succeeds only when what was typed on the
 lock screen is the one-time code the Omarchy Remote service just made after the phone's fingerprint.
 The code lives in /run/user/<uid>/omarchy-remote/unlock-code (only that user reads it), lasts 60 s
 and works once. Anything else (the real password included) fails here and goes on to pam_unix."""

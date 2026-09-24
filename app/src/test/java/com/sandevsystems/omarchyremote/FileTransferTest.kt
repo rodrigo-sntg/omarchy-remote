@@ -19,4 +19,16 @@ class FileTransferTest {
         assertEquals("relat%C3%B3rio%20final%2Bv2.pdf", FileTransfer.encodeName("relatório final+v2.pdf"))
         assertEquals("a-b_c.~1.txt", FileTransfer.encodeName("a-b_c.~1.txt"))
     }
+
+    @org.junit.Test
+    fun aNameFromThePcNeverLeavesTheFolder() {
+        assertEquals("x.xml", FileTransfer.safeName("../../../../data/data/com.sandevsystems.omarchyremote/shared_prefs/x.xml"))
+        assertEquals("evil.txt", FileTransfer.safeName("..\\..\\evil.txt"))
+        assertEquals("arquivo", FileTransfer.safeName(".."))
+        assertEquals("arquivo", FileTransfer.safeName(""))
+        assertEquals("env", FileTransfer.safeName(".env"))
+        assertEquals("relatório.pdf", FileTransfer.safeName("relatório.pdf"))
+        assertEquals(120, FileTransfer.safeName("a".repeat(500) + ".pdf").length)
+        assertEquals("ab", FileTransfer.safeName("a\u0000b"))
+    }
 }

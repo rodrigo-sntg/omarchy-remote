@@ -28,7 +28,8 @@ def is_allowed(whois: dict | None, allowed: set[str], tailnet: str, owner: str |
 
 
 def token_matches(presented: str | None, token: str) -> bool:
-    return presented is not None and hmac.compare_digest(presented.strip().upper(), token)
+    # compare_digest refuses non-ASCII text with an exception (a 500): such a code is simply wrong.
+    return presented is not None and presented.isascii() and hmac.compare_digest(presented.strip().upper(), token)
 
 
 def migrate_config(old: Path, new: Path):

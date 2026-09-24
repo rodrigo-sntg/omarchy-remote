@@ -22,8 +22,14 @@ def new_key():
     return k, base64.b64encode(der).decode()
 
 
-def sign(k, nonce_b64):
-    return base64.b64encode(k.sign(base64.b64decode(nonce_b64), ec.ECDSA(hashes.SHA256()))).decode()
+HOST = "pc.tail1234.ts.net"
+
+
+def sign(k, nonce_b64, host=HOST):
+    """What the phone signs: a fixed label, the PC's name and the nonce (a signature for one PC is
+    worthless on another)."""
+    message = b"omarchy-remote-unlock-v1\0" + host.encode() + b"\0" + base64.b64decode(nonce_b64)
+    return base64.b64encode(k.sign(message, ec.ECDSA(hashes.SHA256()))).decode()
 
 
 def test_the_lock_status_is_read():
@@ -39,9 +45,11 @@ class Injector:
     def __init__(self):
         self.taps = []
         self.on_enter = lambda: None
+        self.on_tap = lambda n: None
 
     def tap(self, usage, mods):
         self.taps.append((usage, mods))
+        self.on_tap(len(self.taps))
         if usage == 40:
             self.on_enter()
         return True
@@ -56,9 +64,19 @@ def make(tmp_path, locked=True, clock=None):
     keys = Keys(tmp_path / "unlock_keys.json")
     inj = Injector()
     notes = []
-    inj.on_enter = lambda: state.update(locked=state.get("refuse", False))
-    u = Unlocker(inj, keys, tmp_path / "run", status=status, notify=lambda *a: notes.append(a), clock=clock or (lambda: 100.0),
-                 settle=0, key_gap=0, confirm_wait=0.01)
+    code = tmp_path / "run" / "unlock-code"
+
+    def enter():
+        # The fake lock: PAM takes the code (deletes it) and unlocks, unless told to refuse it.
+        if state.get("refuse"):
+            return
+        if not state.get("ignore_code"):
+            code.unlink(missing_ok=True)
+        state["locked"] = False
+
+    inj.on_enter = enter
+    u = Unlocker(inj, keys, tmp_path / "run", host=HOST, status=status, notify=lambda *a: notes.append(a),
+                 clock=clock or (lambda: 100.0), settle=0, key_gap=0, confirm_wait=0.01)
     return u, keys, inj, notes, state
 
 
@@ -70,9 +88,7 @@ def test_a_signed_challenge_types_a_one_time_code_never_a_password(tmp_path):
     assert ch["type"] == "unlock.challenge" and len(base64.b64decode(ch["nonce"])) == 32
     result = asyncio.run(u.respond("pixel.ts.net", sign(k, ch["nonce"])))
     assert result == {"type": "unlock.result", "ok": True}
-    code = (tmp_path / "run" / "unlock-code").read_text().split()[0]
-    assert len(code) == 32 and code.isalnum()
-    assert oct((tmp_path / "run" / "unlock-code").stat().st_mode & 0o777) == "0o600"
+    assert not (tmp_path / "run" / "unlock-code").exists()   # taken by the lock
     assert inj.taps[0] == (41, 0) and inj.taps[-1] == (40, 0) and len(inj.taps) == 34   # Esc, the code, Enter
     assert notes
 
@@ -122,11 +138,8 @@ def run_pam(tmp_path, typed: str, now=None):
 
 def test_the_pam_check_accepts_the_code_once_and_nothing_else(tmp_path):
     u, keys, inj, _, _ = make(tmp_path)
-    k, pub = new_key()
-    keys.add("pixel.ts.net", pub)
-    ch = asyncio.run(u.challenge("pixel.ts.net"))
-    asyncio.run(u.respond("pixel.ts.net", sign(k, ch["nonce"])))
-    code = (tmp_path / "run" / "unlock-code").read_text().split()[0]
+    code = "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6"
+    u._write_code(code)
     assert run_pam(tmp_path, "my real password") != 0
     assert (tmp_path / "run" / "unlock-code").exists()        # a wrong try does not spend it
     assert run_pam(tmp_path, code) == 0
@@ -136,10 +149,7 @@ def test_the_pam_check_accepts_the_code_once_and_nothing_else(tmp_path):
 
 def test_the_pam_check_refuses_an_old_code(tmp_path):
     u, keys, inj, _, _ = make(tmp_path)
-    k, pub = new_key()
-    keys.add("pixel.ts.net", pub)
-    ch = asyncio.run(u.challenge("pixel.ts.net"))
-    asyncio.run(u.respond("pixel.ts.net", sign(k, ch["nonce"])))
+    u._write_code("a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6")
     code = (tmp_path / "run" / "unlock-code").read_text().split()[0]
     expires = float((tmp_path / "run" / "unlock-code").read_text().split()[1])
     assert run_pam(tmp_path, code, now=expires + 1) != 0
@@ -204,3 +214,48 @@ def test_it_only_counts_when_the_pc_really_opens(tmp_path):
     assert asyncio.run(u.respond("pixel.ts.net", sign(k, ch["nonce"]))) == {"type": "unlock.result", "ok": False, "reason": "not-accepted"}
     assert not (tmp_path / "run" / "unlock-code").exists()     # a code that didn't work is thrown away
     assert notes == []                                         # no "unlocked" notice
+
+
+def test_a_signature_for_another_pc_is_refused(tmp_path):
+    u, keys, inj, _, _ = make(tmp_path)
+    k, pub = new_key()
+    keys.add("pixel.ts.net", pub)
+    ch = asyncio.run(u.challenge("pixel.ts.net"))
+    assert asyncio.run(u.respond("pixel.ts.net", sign(k, ch["nonce"], host="other.tail1234.ts.net")))["reason"] == "bad-signature"
+    assert inj.taps == []
+
+
+def test_the_code_is_never_entered_once_the_lock_is_gone(tmp_path):
+    u, keys, inj, notes, state = make(tmp_path)
+    k, pub = new_key()
+    keys.add("pixel.ts.net", pub)
+    inj.on_tap = lambda n: state.update(locked=False) if n == 10 else None   # the person typed the password meanwhile
+    ch = asyncio.run(u.challenge("pixel.ts.net"))
+    assert asyncio.run(u.respond("pixel.ts.net", sign(k, ch["nonce"])))["reason"] == "lock-gone"
+    assert (40, 0) not in inj.taps                               # no Enter into whatever window has focus
+    assert not (tmp_path / "run" / "unlock-code").exists() and notes == []
+
+
+def test_only_a_code_the_lock_used_counts(tmp_path):
+    u, keys, inj, notes, state = make(tmp_path)
+    state["ignore_code"] = True                                   # unlocked, but not by our code
+    k, pub = new_key()
+    keys.add("pixel.ts.net", pub)
+    ch = asyncio.run(u.challenge("pixel.ts.net"))
+    assert asyncio.run(u.respond("pixel.ts.net", sign(k, ch["nonce"])))["reason"] == "not-accepted"
+    assert not (tmp_path / "run" / "unlock-code").exists() and notes == []
+
+
+def test_the_phone_cant_click_its_own_enrollment(tmp_path):
+    u, keys, _, _, state = make(tmp_path, locked=False)
+    _, pub = new_key()
+    seen = {}
+
+    async def confirm(device):
+        seen["blocked"] = u.input_blocked
+        state["locked"] = True                                    # locked while the prompt was up
+        return True
+
+    assert asyncio.run(u.enroll("pixel.ts.net", pub, confirm=confirm))["reason"] == "locked"
+    assert seen["blocked"] is True and u.input_blocked is False
+    assert keys.get("pixel.ts.net") is None

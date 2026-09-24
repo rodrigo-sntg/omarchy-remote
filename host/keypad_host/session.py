@@ -5,6 +5,9 @@ HEARTBEAT_TIMEOUT = 6.0
 _ACKED = {"keyboard.tap", "pointer.buttons", "input.releaseAll", "workspace.go", "workspace.step", "clipboard.set"}
 
 
+_INPUT = {"pointer.move", "pointer.buttons", "pointer.scroll", "keyboard.tap", "workspace.go", "workspace.step"}
+
+
 class Session:
     def __init__(self, session_id: str, injector, now: float, heartbeat_timeout: float = HEARTBEAT_TIMEOUT, desktop=None):
         self.desktop = desktop  # Hyprland IPC for workspaces; None when unavailable
@@ -16,6 +19,9 @@ class Session:
         self.closed = False
         self.last_message = None  # the last valid message, for handlers that answer asynchronously
         self.watch_cursor = True  # the phone shows the cursor map (it says when it does not)
+        # Set by the server: true while the PC asks whether a phone may unlock it (the answer must
+        # come from someone at the PC, so the phones' keyboard and mouse are off meanwhile).
+        self.input_blocked = lambda: False
 
     def handle(self, raw: str, now: float) -> list[dict]:
         if self.closed:
@@ -48,6 +54,8 @@ class Session:
 
     def _inject(self, message) -> bool:
         p = message.payload
+        if message.type in _INPUT and self.input_blocked():
+            return False
         match message.type:
             case "pointer.move":
                 self.injector.move(p["dx"], p["dy"])

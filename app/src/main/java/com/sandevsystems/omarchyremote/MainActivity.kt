@@ -64,22 +64,27 @@ class MainActivity : ComponentActivity() {
         shared(intent)
     }
 
-    /** Text shared to Omarchy Remote from any app goes to the PC's clipboard. */
+    /**
+     * Something shared to Omarchy Remote from another app: text for the PC's clipboard, a link to open
+     * there ("Abrir no PC"), or files. Nothing goes before the person confirms (KeypadViewModel.pendingShare),
+     * and only content:// from other apps is taken (ShareRules).
+     */
     private fun shared(intent: Intent?) {
-        when (intent?.action) {
+        fun ok(uri: Uri) = com.sandevsystems.omarchyremote.network.ShareRules.accepts(uri.scheme, uri.authority, packageName)
+        val share = when (intent?.action) {
             Intent.ACTION_SEND -> {
                 val stream = IntentCompat.getParcelableExtra(intent, Intent.EXTRA_STREAM, Uri::class.java)
-                if (stream != null) vm.sendFiles(listOf(stream))
+                if (stream != null) KeypadViewModel.PendingShare(files = listOf(stream).filter(::ok))
                 else if (intent.type == "text/plain") intent.getStringExtra(Intent.EXTRA_TEXT)?.let {
-                    // "Abrir no PC": the link opens in the PC's browser; otherwise the text goes to its clipboard.
-                    if (intent.component?.className?.endsWith(".OpenOnPc") == true) vm.openUrlOnPc(it) else vm.sendClipboardToPc(it)
+                    KeypadViewModel.PendingShare(text = it, openLink = intent.component?.className?.endsWith(".OpenOnPc") == true)
                 }
-                else return
+                else null
             }
             Intent.ACTION_SEND_MULTIPLE ->
-                vm.sendFiles(IntentCompat.getParcelableArrayListExtra(intent, Intent.EXTRA_STREAM, Uri::class.java).orEmpty())
+                KeypadViewModel.PendingShare(files = IntentCompat.getParcelableArrayListExtra(intent, Intent.EXTRA_STREAM, Uri::class.java).orEmpty().filter(::ok))
             else -> return
         }
+        if (share != null && (share.text != null || share.files.isNotEmpty())) vm.pendingShare = share
         intent.action = null  // handled: not again after a rotation
     }
 

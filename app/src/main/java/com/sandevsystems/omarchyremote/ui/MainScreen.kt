@@ -80,6 +80,14 @@ private enum class Sheet { NONE, COMPUTER, SETTINGS, SHORTCUTS, OMARCHY }
 /** Main screen of design v2: the base never moves; keys, text and sheets are layers over it. */
 @Composable
 fun KeypadScreen(vm: KeypadViewModel) {
+    // The PC's screen and the terminal show whatever is on the PC (code, passwords typed there):
+    // out of screenshots, recordings and the recents preview while they are open.
+    val window = androidx.activity.compose.LocalActivity.current?.window
+    val secure = vm.secureScreens && (vm.videoMode != VideoMode.NONE || vm.terminalOpen)
+    androidx.compose.runtime.SideEffect {
+        if (secure) window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+        else window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+    }
     when (vm.videoMode) {
         VideoMode.DISPLAY, VideoMode.SCREEN -> return RemoteScreen(vm)
         VideoMode.NONE -> Unit
@@ -161,6 +169,7 @@ fun KeypadScreen(vm: KeypadViewModel) {
     val pcLock by vm.pcLock.collectAsStateWithLifecycle()
     var unlockSetup by rememberSaveable { mutableStateOf(false) }
     if (unlockSetup) UnlockSetupSheet(vm, pcLock) { unlockSetup = false }
+    vm.pendingShare?.let { ShareConfirmSheet(vm, it) }
     // A keyboard attached to the phone types on the PC unless a text field could be focused.
     SideEffect { vm.hardwareKeysToPc = connected && sheet == Sheet.NONE && layer != Layer.TEXT && layer != Layer.KEYBOARD && tab == MainTab.CONTROL }
     var omarchyTab by rememberSaveable { mutableStateOf(OmarchyTab.MENU) }

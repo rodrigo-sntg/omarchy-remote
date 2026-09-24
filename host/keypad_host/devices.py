@@ -16,6 +16,9 @@ class Devices:
             self.data = {}
         self.data.setdefault("seen", {})
         self.data.setdefault("revoked", [])
+        # Tailscale's StableID of each revoked device: renaming the device changes its MagicDNS name,
+        # not this, so a revoked phone can't come back under a new name.
+        self.data.setdefault("revoked_ids", [])
 
     def _save(self):
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -25,10 +28,12 @@ class Devices:
             json.dump(self.data, f, indent=1)
         os.replace(tmp, self.path)
 
-    def seen(self, name: str):
+    def seen(self, name: str, stable_id: str | None = None):
         now = int(self.clock())
         entry = self.data["seen"].setdefault(name, {"first": now})
         entry["last"] = now
+        if stable_id:
+            entry["id"] = stable_id
         self._save()
 
     def list(self) -> list[dict]:
@@ -47,12 +52,15 @@ class Devices:
             return False
         if name not in self.data["revoked"]:
             self.data["revoked"].append(name)
-            self._save()
+        stable = self.data["seen"][name].get("id")
+        if stable and stable not in self.data["revoked_ids"]:
+            self.data["revoked_ids"].append(stable)
+        self._save()
         return True
 
-    def revoked(self, name: str) -> bool:
-        return name.lower().rstrip(".") in self.data["revoked"]
+    def revoked(self, name: str, stable_id: str | None = None) -> bool:
+        return name.lower().rstrip(".") in self.data["revoked"] or bool(stable_id and stable_id in self.data["revoked_ids"])
 
     def forget_all(self):
-        self.data = {"seen": {}, "revoked": []}
+        self.data = {"seen": {}, "revoked": [], "revoked_ids": []}
         self._save()

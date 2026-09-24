@@ -1,5 +1,11 @@
 import json
 
+from tests.controller import controller
+
+
+def own(events):
+    """The screen's own input, without the main session's release_all when it closes."""
+    return [e for e in events if e != ("release_all",)]
 from keypad_host.display import fit_size
 import asyncio
 
@@ -62,7 +68,7 @@ def run(scenario):
             return PHONE
 
         app = create_app(injector, {"samsung-sm-s928b"}, TAILNET, TOKEN, whois, hyprland=hyprland, capture=capture)
-        async with TestClient(TestServer(app)) as client:
+        async with TestClient(TestServer(app)) as client, controller(client):
             await scenario(client)
         return injector, hyprland, captures
 
@@ -105,7 +111,7 @@ def test_touch_held_when_phone_disconnects_is_released():
         await ws.close()
 
     injector, hyprland, _ = run(scenario)
-    assert injector.events[-1] == ("buttons", 0)
+    assert own(injector.events)[-1] == ("buttons", 0)
     assert hyprland.calls[-1] == ("remove",)
 
 
@@ -154,7 +160,7 @@ def run_screen(scenario):
             return PHONE
 
         app = create_app(injector, {"samsung-sm-s928b"}, TAILNET, TOKEN, whois, hyprland=hyprland, capture=capture)
-        async with TestClient(TestServer(app)) as client:
+        async with TestClient(TestServer(app)) as client, controller(client):
             await scenario(client)
         return injector, hyprland, captures
 
@@ -180,7 +186,7 @@ def test_screen_lists_monitors_streams_the_chosen_one_and_maps_gestures():
     assert captures[0][:2] == ("HDMI-A-1", (2340, 980))
     assert ("cursor", 1920 + 1720, 720) in hyprland.calls
     assert ("cursor", 1920, 0) in hyprland.calls
-    assert injector.events == [("buttons", 2), ("buttons", 0), ("scroll", -2), ("hscroll", 3)]
+    assert own(injector.events) == [("buttons", 2), ("buttons", 0), ("scroll", -2), ("hscroll", 3)]
     assert ("create", 2340, 1080, 1.0) not in hyprland.calls  # no virtual monitor for "Ver PC"
     assert captures[0][2].terminated
 
@@ -253,7 +259,7 @@ def test_trackpad_pointer_moves_relatively_clicks_at_cursor_and_reports_it():
             return PHONE
 
         app = create_app(injector, {"samsung-sm-s928b"}, TAILNET, TOKEN, whois, hyprland=hyprland, capture=capture)
-        async with TestClient(TestServer(app)) as client:
+        async with TestClient(TestServer(app)) as client, controller(client):
             ws = await client.ws_connect("/v1/screen", headers={TOKEN_HEADER: TOKEN})
             await ws.receive_json()
             await ws.send_json({"type": "screen.start", "monitor": "HDMI-A-1", "maxWidth": 2340, "maxHeight": 1080})
@@ -293,7 +299,7 @@ def test_view_only_preview_neither_moves_the_cursor_nor_accepts_input_and_report
             return PHONE
 
         app = create_app(injector, {"samsung-sm-s928b"}, TAILNET, TOKEN, whois, hyprland=hyprland, capture=capture)
-        async with TestClient(TestServer(app)) as client:
+        async with TestClient(TestServer(app)) as client, controller(client):
             ws = await client.ws_connect("/v1/screen", headers={TOKEN_HEADER: TOKEN})
             await ws.receive_json()
             await ws.send_json({"type": "screen.start", "monitor": "HDMI-A-1", "maxWidth": 480, "maxHeight": 270,
@@ -312,7 +318,7 @@ def test_view_only_preview_neither_moves_the_cursor_nor_accepts_input_and_report
     injector, hyprland, captures = asyncio.run(main())
     assert captures == [("HDMI-A-1", (480, 200), 8)]
     assert not any(c[0] == "cursor" for c in hyprland.calls)  # never warped
-    assert injector.events == []  # view only: no input at all
+    assert own(injector.events) == []  # view only: no input at all
 
 
 def test_input_sent_before_the_monitor_request_is_ignored_not_fatal():
@@ -328,7 +334,7 @@ def test_input_sent_before_the_monitor_request_is_ignored_not_fatal():
             return PHONE
 
         app = create_app(injector, {"samsung-sm-s928b"}, TAILNET, TOKEN, whois, hyprland=hyprland, capture=capture)
-        async with TestClient(TestServer(app)) as client:
+        async with TestClient(TestServer(app)) as client, controller(client):
             ws = await client.ws_connect("/v1/screen", headers={TOKEN_HEADER: TOKEN})
             await ws.receive_json()
             await ws.send_json({"type": "pointer", "action": "rel", "dx": 0.1, "dy": 0.0})
@@ -372,7 +378,7 @@ def test_switching_monitor_and_quality_keeps_the_connection():
             return PHONE
 
         app = create_app(injector, {"samsung-sm-s928b"}, TAILNET, TOKEN, whois, hyprland=hyprland, capture=capture)
-        async with TestClient(TestServer(app)) as client:
+        async with TestClient(TestServer(app)) as client, controller(client):
             ws = await client.ws_connect("/v1/screen", headers={TOKEN_HEADER: TOKEN})
             await ws.receive_json()
             await ws.send_json({"type": "screen.start", "monitor": "HDMI-A-1", "maxWidth": 2340, "maxHeight": 1080, "scale": 0.75, "fps": 30})
@@ -425,7 +431,7 @@ def test_a_capture_started_as_the_phone_leaves_is_stopped():
             return PHONE
 
         app = create_app(MovingInjector(hyprland), {"samsung-sm-s928b"}, TAILNET, TOKEN, whois, hyprland=hyprland, capture=capture)
-        async with TestClient(TestServer(app)) as client:
+        async with TestClient(TestServer(app)) as client, controller(client):
             ws = phone["ws"] = await client.ws_connect("/v1/screen", headers={TOKEN_HEADER: TOKEN})
             await ws.receive_json()
             await ws.send_json({"type": "screen.start", "monitor": "DP-1", "maxWidth": 2340, "maxHeight": 1080})
@@ -468,7 +474,7 @@ def test_ver_pc_can_show_just_the_focused_window_and_follows_focus():
             return PHONE
 
         app = create_app(MovingInjector(hyprland), {"samsung-sm-s928b"}, TAILNET, TOKEN, whois, hyprland=hyprland, capture=capture)
-        async with TestClient(TestServer(app)) as client:
+        async with TestClient(TestServer(app)) as client, controller(client):
             ws = await client.ws_connect("/v1/screen", headers={TOKEN_HEADER: TOKEN})
             await ws.receive_json()
             await ws.send_json({"type": "screen.start", "monitor": "DP-1", "maxWidth": 2340, "maxHeight": 1080})

@@ -4,6 +4,16 @@ import subprocess
 from keypad_host.git_view import file_diff, git_summary
 
 
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def home_is_tmp(tmp_path, monkeypatch):
+    """The test repositories live in tmp_path: that is the "home" diffs may be read in."""
+    from keypad_host import git_view
+    monkeypatch.setattr(git_view, "HOME", tmp_path)
+
+
 def repo(tmp_path):
     def git(*args):
         subprocess.run(["git", "-C", str(tmp_path), *args], check=True, capture_output=True)

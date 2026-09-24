@@ -117,3 +117,18 @@ def test_an_oversized_message_is_refused_not_fatal():
     assert session.handle(big, 0.1) == [{"type": "ack", "seq": 1, "ok": False}]
     assert not session.closed and session.last_message is None
     assert session.handle(msg(2, "keyboard.tap", {"usage": 4, "modifiers": 0}), 0.2) == [{"type": "ack", "seq": 2, "ok": True}]
+
+
+def test_no_input_while_the_pc_asks_about_unlocking():
+    import json
+    injector = FakeInjector()
+    s = Session("s", injector, 0.0)
+    blocked = {"v": True}
+    s.input_blocked = lambda: blocked["v"]
+    frame = lambda seq, t, p: json.dumps({"v": 1, "sessionId": "s", "seq": seq, "type": t, "payload": p})
+    assert s.handle(frame(1, "keyboard.tap", {"usage": 4, "modifiers": 0}), 1.0) == [{"type": "ack", "seq": 1, "ok": False}]
+    s.handle(frame(2, "pointer.buttons", {"mask": 1}), 1.0)
+    assert injector.events == []
+    blocked["v"] = False
+    s.handle(frame(3, "keyboard.tap", {"usage": 4, "modifiers": 0}), 1.0)
+    assert ("tap", 4, 0) in injector.events

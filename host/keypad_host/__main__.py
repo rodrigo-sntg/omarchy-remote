@@ -41,6 +41,15 @@ def tailscale_owner() -> str | None:
     return (user or {}).get("LoginName")
 
 
+def tailnet_self_name() -> str:
+    """This PC's MagicDNS name, as the phone reaches it (unlock signatures are bound to it)."""
+    try:
+        status = json.loads(subprocess.run(["tailscale", "status", "--json"], capture_output=True, text=True, check=True).stdout)
+        return (status.get("Self") or {}).get("DNSName", "").rstrip(".").lower()
+    except (OSError, subprocess.CalledProcessError, ValueError):
+        return "localhost"
+
+
 def tailnet_suffix() -> str:
     status = subprocess.run(["tailscale", "status", "--json"], capture_output=True, text=True, check=True).stdout
     return json.loads(status)["MagicDNSSuffix"].lower()
@@ -91,7 +100,8 @@ def main():
         app = create_app(injector, allowed, tailnet, lambda: code["token"], whois, hyprland=Hyprland(), herdr=Herdr(),
                          state_path=os.path.join(run_dir, "state.json"), notify=omarchy_notify, theme_reader=read_theme,
                          events=events, owner=owner, devices=Devices(TOKEN_PATH.parent / "devices.json"),
-                         unlocker=Unlocker(injector, Keys(TOKEN_PATH.parent / "unlock_keys.json"), run_dir, notify=omarchy_notify))
+                         unlocker=Unlocker(injector, Keys(TOKEN_PATH.parent / "unlock_keys.json"), run_dir,
+                                           host=tailnet_self_name(), notify=omarchy_notify))
 
         def rotate():
             code["token"] = new_token(TOKEN_PATH)

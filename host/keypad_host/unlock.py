@@ -132,13 +132,21 @@ async def confirm_on_pc(device: str) -> bool:
 
 
 class Unlocker:
-    def __init__(self, injector, keys: Keys, run_dir, status=lock_status, notify=lambda *a: None,
+    def __init__(self, injector, keys: Keys, run_dir, host: str = "", status=lock_status, notify=lambda *a: None,
                  clock=time.monotonic, wall=time.time, settle=0.8, key_gap=0.025, confirm_wait=0.25):
+        """[host]: this PC's name as the phone reaches it (its MagicDNS name): signatures are bound to it."""
         self.injector, self.keys, self.run_dir = injector, keys, Path(run_dir)
+        self.host = host.lower().rstrip(".")
         self.status, self.notify, self.clock, self.wall, self.settle = status, notify, clock, wall, settle
         self.key_gap, self.confirm_wait = key_gap, confirm_wait
         self.pending: dict[str, tuple[bytes, float]] = {}
         self.tries: list[float] = []
+        # While the PC asks "may this phone unlock me?", the phones' remote input is off: the answer
+        # must come from someone at the PC, not from a phone clicking its own prompt.
+        self.input_blocked = False
+
+    def signed_message(self, nonce: bytes) -> bytes:
+        return b"omarchy-remote-unlock-v1\0" + self.host.encode() + b"\0" + nonce
 
     def ready(self, device: str) -> dict:
         """What the phone needs to know to offer the unlock: its key here, the lock's rule installed."""
@@ -150,8 +158,15 @@ class Unlocker:
             return {"type": "unlock.enrolled", "ok": False, "reason": "bad-key"}
         if await self.status() is not False:
             return {"type": "unlock.enrolled", "ok": False, "reason": "locked"}
-        if not await confirm(device):
+        self.input_blocked = True
+        try:
+            allowed = await confirm(device)
+        finally:
+            self.input_blocked = False
+        if not allowed:
             return {"type": "unlock.enrolled", "ok": False, "reason": "denied"}
+        if await self.status() is not False:   # locked while the prompt was up: nobody said yes at the PC
+            return {"type": "unlock.enrolled", "ok": False, "reason": "locked"}
         self.keys.add(device, public_key)
         log.info("unlock: key enrolled for %s", device)
         return {"type": "unlock.enrolled", "ok": True, **self.ready(device)}
@@ -178,7 +193,7 @@ class Unlocker:
         if nonce is None or now - at > CHALLENGE_TTL:
             return self._refused("no-challenge")
         key = self.keys.get(device)
-        if not key or not verify(key, nonce, signature):
+        if not key or not verify(key, self.signed_message(nonce), signature):
             log.warning("unlock: bad signature from %s", device)
             return self._refused("bad-signature")
         if await self.status() is not True:
@@ -187,22 +202,34 @@ class Unlocker:
         self._write_code(code)
         # Esc wakes a blanked lock and clears its field (the lock takes it, types nothing); the screen
         # needs a moment to come back, and keys fired all at once get lost: one at a time.
-        self.injector.tap(ESCAPE, 0)
-        await asyncio.sleep(self.settle)
-        for ch in code:
-            self.injector.tap(usage(ch), 0)
-            await asyncio.sleep(self.key_gap)
-        self.injector.tap(ENTER, 0)
-        log.info("unlock: code typed for %s", device)
-        # Only a lock that really went away counts (PAM takes a moment).
-        for _ in range(24):
-            await asyncio.sleep(self.confirm_wait)
-            if await self.status() is False:
-                self.notify("Desbloqueado pelo celular", device.split(".")[0])
-                return {"type": "unlock.result", "ok": True}
-        (self.run_dir / "unlock-code").unlink(missing_ok=True)   # not taken: never valid again
-        log.warning("unlock: the lock did not take the code")
-        return self._refused("not-accepted")
+        path = self.run_dir / "unlock-code"
+        try:
+            self.injector.tap(ESCAPE, 0)
+            await asyncio.sleep(self.settle)
+            for i, ch in enumerate(code):
+                # The lock may go away while typing (the person typed the password): stop before the
+                # code, and above all the Enter, land in whatever window has the focus.
+                if i % 8 == 0 and await self.status() is not True:
+                    return self._refused("lock-gone")
+                self.injector.tap(usage(ch), 0)
+                await asyncio.sleep(self.key_gap)
+            if await self.status() is not True:
+                return self._refused("lock-gone")
+            self.injector.tap(ENTER, 0)
+            log.info("unlock: code typed for %s", device)
+            # Success is the lock gone AND the code used up by it (PAM deletes it): the lock going
+            # away for another reason is not this code working.
+            for _ in range(24):
+                await asyncio.sleep(self.confirm_wait)
+                if await self.status() is False:
+                    if path.exists():
+                        break
+                    self.notify("Desbloqueado pelo celular", device.split(".")[0])
+                    return {"type": "unlock.result", "ok": True}
+            log.warning("unlock: the lock did not take the code")
+            return self._refused("not-accepted")
+        finally:
+            path.unlink(missing_ok=True)   # whatever happened, never valid again
 
     def _write_code(self, code: str):
         self.run_dir.mkdir(mode=0o700, parents=True, exist_ok=True)

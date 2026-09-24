@@ -39,3 +39,14 @@ class MirrorRulesTest {
         assertEquals("oi", MirrorRules.clip("oi", 1500))
     }
 }
+
+class MirrorAnswerTest {
+    @org.junit.Test
+    fun thePcMayOnlyAnswerWhatThePhoneSentIt() {
+        val sent = setOf("k1")
+        org.junit.Assert.assertTrue(MirrorRules.mayAnswer("k1", sent, enabled = true, pkg = "com.whatsapp", excluded = emptySet()))
+        org.junit.Assert.assertFalse(MirrorRules.mayAnswer("k2", sent, enabled = true, pkg = "com.whatsapp", excluded = emptySet()))  // never sent
+        org.junit.Assert.assertFalse(MirrorRules.mayAnswer("k1", sent, enabled = false, pkg = "com.whatsapp", excluded = emptySet())) // mirroring off
+        org.junit.Assert.assertFalse(MirrorRules.mayAnswer("k1", sent, enabled = true, pkg = "com.whatsapp", excluded = setOf("com.whatsapp")))
+    }
+}

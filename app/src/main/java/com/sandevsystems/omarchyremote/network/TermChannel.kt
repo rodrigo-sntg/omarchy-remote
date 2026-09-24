@@ -32,7 +32,7 @@ class TermChannel(
     private val socket: WebSocket
 
     init {
-        val client = OkHttpClient.Builder().connectTimeout(5, TimeUnit.SECONDS).build()
+        val client = com.sandevsystems.omarchyremote.network.TailnetDns.client().connectTimeout(5, TimeUnit.SECONDS).build()
         val request = Request.Builder().url(url).header("X-Keypad-Token", pairingCode).build()
         socket = client.newWebSocket(request, object : WebSocketListener() {
             override fun onOpen(webSocket: WebSocket, response: Response) {

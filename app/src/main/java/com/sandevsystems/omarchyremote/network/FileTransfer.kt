@@ -40,7 +40,7 @@ import java.util.concurrent.atomic.AtomicInteger
  * progress and the result are notifications.
  */
 class FileTransfer(private val context: Context, private val scope: CoroutineScope) {
-    private val client = OkHttpClient.Builder().connectTimeout(5, TimeUnit.SECONDS)
+    private val client = com.sandevsystems.omarchyremote.network.TailnetDns.client().connectTimeout(5, TimeUnit.SECONDS)
         .writeTimeout(60, TimeUnit.SECONDS).readTimeout(60, TimeUnit.SECONDS).build()
     private val ids = AtomicInteger(NOTIFICATION_BASE)  // two per transfer: the notification and its share action
 
@@ -195,7 +195,8 @@ class FileTransfer(private val context: Context, private val scope: CoroutineSco
     }
 
     /** Writes into MediaStore (visible in Files/Gallery); on Android 9 into the app's own folder. */
-    private fun save(name: String, image: Boolean, write: (java.io.OutputStream) -> Unit): Pair<Uri?, String> {
+    private fun save(rawName: String, image: Boolean, write: (java.io.OutputStream) -> Unit): Pair<Uri?, String> {
+        val name = safeName(rawName)
         val mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(name.substringAfterLast('.', "").lowercase())
             ?: "application/octet-stream"
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
@@ -287,6 +288,19 @@ class FileTransfer(private val context: Context, private val scope: CoroutineSco
         /** ws://host:port/v1 (the session) -> http://host:port/v1/[path]; null for anything else. */
         fun httpUrl(sessionUrl: String, path: String): String? =
             if (sessionUrl.startsWith("ws://")) "http://" + sessionUrl.removePrefix("ws://").trimEnd('/') + "/" + path else null
+
+        /**
+         * A name the PC chose, made safe to save: its last part only (no "/" or "\\", so never
+         * "../" out of the folder), no control characters, no leading dots, at most 120 characters.
+         */
+        fun safeName(raw: String): String {
+            val last = raw.replace('\\', '/').substringAfterLast('/').filter { it >= ' ' }.trimStart('.').trim()
+            val name = if (last.length > 120) {
+                val ext = last.substringAfterLast('.', "").take(10)
+                last.take(120 - if (ext.isEmpty()) 0 else ext.length + 1) + if (ext.isEmpty()) "" else ".$ext"
+            } else last
+            return name.ifBlank { tr("arquivo", "file") }
+        }
 
         /** Percent-encoded UTF-8, every byte but the unreserved ones (RFC 3986). */
         fun encodeName(name: String): String = buildString {

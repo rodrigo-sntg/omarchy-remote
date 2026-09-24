@@ -24,6 +24,18 @@ def within_home(path: str, home: Path) -> str | None:
     return real if real == base or real.startswith(base + os.sep) else None
 
 
+def fetchable(path: str, home: Path) -> str | None:
+    """A file the phone may take from the PC: inside the home, and nowhere hidden (no ".ssh",
+    ".config"… anywhere on its real path: that is where keys, tokens and the pairing code live)."""
+    real = within_home(path, home)
+    if real is None:
+        return None
+    rel = os.path.relpath(real, os.path.realpath(str(home)))
+    if any(part.startswith(".") for part in Path(rel).parts):
+        return None
+    return real
+
+
 def folder_listing(path: str, home: Path) -> dict:
     real = within_home(path, home)
     if real is None or not os.path.isdir(real):

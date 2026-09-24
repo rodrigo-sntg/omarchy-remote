@@ -10,6 +10,8 @@ import kotlinx.coroutines.launch
 class AgentActionReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val app = context.applicationContext as KeypadApp
+        // Android 12+ asks to unlock before the action runs; older ones: refuse while locked.
+        if (context.getSystemService(android.app.KeyguardManager::class.java)?.isDeviceLocked == true) return
         val id = intent.getStringExtra(AGENT) ?: return
         val key = intent.getStringExtra(KEY)
         val reply = RemoteInput.getResultsFromIntent(intent)?.getCharSequence(REPLY)?.toString()?.trim()

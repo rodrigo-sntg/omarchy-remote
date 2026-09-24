@@ -53,7 +53,7 @@ def test_each_control_runs_omarchys_own_command():
     assert control_command("bluetooth", None) == ["omarchy-bluetooth-power", "toggle"]
     assert control_command("bar", None) == ["omarchy-toggle-bar"]
     assert control_command("gaps", None) == ["omarchy-hyprland-window-gaps-toggle"]
-    assert control_command("power", "performance") == ["omarchy-powerprofiles-set", "performance"]
+    assert control_command("power", "performance") == ["omarchy-powerprofiles-set", "autodetect", "performance"]
     with pytest.raises(ValueError):
         control_command("power", "rm -rf")
     with pytest.raises(ValueError):

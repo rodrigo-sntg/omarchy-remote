@@ -318,6 +318,8 @@ fun SettingsSheet(vm: KeypadViewModel, onUnlockSetup: () -> Unit = {}, onEditSho
                 Icon(Glyph.ChevronRight, null, Modifier.padding(start = 6.dp).size(16.dp), tint = KeypadColors.TextMute)
             }
         }
+        SettingToggle(tr("Proteger a tela do PC em prints", "Keep the PC screen out of screenshots"), vm.secureScreens, vm::changeSecureScreens,
+            tr("A tela do PC e o terminal não aparecem em prints, gravações e apps recentes", "The PC screen and the terminal stay out of screenshots, recordings and recent apps"))
         SettingToggle(tr("Música do PC na tela de bloqueio", "PC music on the lock screen"), vm.pcMedia, vm::changePcMedia,
             tr("Pausar e pular faixa sem abrir o app", "Pause and skip without opening the app"))
         SettingToggle(tr("Miniaturas das telas do PC", "PC screen thumbnails"), vm.liveThumbs, vm::changeLiveThumbs,

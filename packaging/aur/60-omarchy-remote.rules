@@ -1,2 +1,5 @@
 # Omarchy Remote: the logged-in user may create the virtual keyboard, mouse and pen (uinput).
+# Meant for a PC with one person using it: with uaccess, another user who logs in on the same seat
+# can keep /dev/uinput open after switching back and type into your session. On a shared PC, use a
+# group of your own instead (GROUP="omarchy-remote", MODE="0660") and add only yourself to it.
 KERNEL=="uinput", SUBSYSTEM=="misc", TAG+="uaccess", OPTIONS+="static_node=uinput"

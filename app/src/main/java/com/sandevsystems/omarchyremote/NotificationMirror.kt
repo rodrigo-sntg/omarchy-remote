@@ -42,7 +42,7 @@ class NotificationMirror : NotificationListenerService() {
 
     /** Answers a notification with the text typed on the PC, as if typed in its own reply field. */
     fun reply(key: String, text: String): Boolean {
-        val sbn = sent[key] ?: activeNotifications?.firstOrNull { it.key == key } ?: return false
+        val sbn = allowed(key) ?: return false
         val action = replyAction(sbn.notification) ?: return false
         val results = Bundle().apply { action.remoteInputs.forEach { putCharSequence(it.resultKey, text) } }
         val intent = Intent().addFlags(Intent.FLAG_RECEIVER_FOREGROUND)
@@ -50,7 +50,15 @@ class NotificationMirror : NotificationListenerService() {
         return runCatching { action.actionIntent.send(this, 0, intent); true }.getOrDefault(false)
     }
 
-    fun dismiss(key: String) = runCatching { cancelNotification(key) }
+    fun dismiss(key: String) {
+        if (allowed(key) != null) runCatching { cancelNotification(key) }
+    }
+
+    /** Only notifications this phone forwarded, with mirroring on and their app not turned off. */
+    private fun allowed(key: String): StatusBarNotification? {
+        val sbn = sent[key] ?: return null
+        return sbn.takeIf { MirrorRules.mayAnswer(key, sent.keys, app.prefs.getBoolean(PREF, false), it.packageName, excluded(app)) }
+    }
 
     private fun replyAction(n: Notification): Notification.Action? =
         n.actions?.firstOrNull { a -> a.remoteInputs?.any { it.allowFreeFormInput } == true }

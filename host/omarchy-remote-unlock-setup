@@ -7,12 +7,15 @@
 #   auth [success=done default=ignore] pam_exec.so quiet expose_authtok /usr/local/lib/omarchy-remote/pam-unlock-code
 # That line accepts only the one-time code the Omarchy Remote service types after the phone's
 # fingerprint; anything else (your password included) goes on to the usual check, unchanged.
-# The file as it was is kept in /etc/pam.d/omarchy-lock-password.bak-omarchy-remote.
+# The file as it was is kept in /usr/local/lib/omarchy-remote/omarchy-lock-password.orig (outside
+# /etc/pam.d, where any file is a PAM service); --remove takes the line out again.
 set -euo pipefail
 [[ $EUID -eq 0 ]] || { echo "Rode com sudo: sudo $0 $*" >&2; exit 1; }
 
 pam=/etc/pam.d/omarchy-lock-password
 dest=/usr/local/lib/omarchy-remote/pam-unlock-code
+backup=/usr/local/lib/omarchy-remote/omarchy-lock-password.orig
+old_backup=$pam.bak-omarchy-remote   # where earlier versions kept it
 line="auth       [success=done default=ignore] pam_exec.so quiet expose_authtok $dest"
 here=$(cd "$(dirname "$(readlink -f "$0")")" && pwd -P)
 src=$here/pam-unlock-code
@@ -20,9 +23,14 @@ src=$here/pam-unlock-code
 
 [[ -f $pam ]] || { echo "Não achei $pam (o Omarchy mudou o bloqueio?)." >&2; exit 1; }
 
+# An older backup inside /etc/pam.d is itself a PAM service: move it out.
+if [[ -f $old_backup ]]; then
+  install -D -o root -g root -m 644 "$old_backup" "$backup" && rm -f "$old_backup"
+fi
+
 if [[ ${1:-} == --remove ]]; then
   sed -i '\|pam-unlock-code|d' "$pam"
-  rm -f "$dest"
+  rm -f "$dest" "$backup"
   rmdir /usr/local/lib/omarchy-remote 2>/dev/null || true
   echo "Removido. O bloqueio volta a aceitar só a senha."
   exit 0
@@ -30,12 +38,18 @@ fi
 
 install -D -o root -g root -m 755 "$src" "$dest"
 if grep -q pam-unlock-code "$pam"; then
-  echo "Já estava ligado ($pam)."
+  echo "Já estava ligado ($pam); verificação atualizada."
 else
-  cp -a "$pam" "$pam.bak-omarchy-remote"
+  install -D -o root -g root -m 644 "$pam" "$backup"
   # After the attempts limit (pam_faillock preauth), so the lockout after failed tries still applies.
-  if grep -q "pam_faillock.so preauth" "$pam"; then sed -i "/pam_faillock.so preauth/a $line" "$pam"; else sed -i "1a $line" "$pam"; fi
-  echo "Ligado. Cópia do arquivo original: $pam.bak-omarchy-remote"
+  # Only after the first such line, even if the file had more than one.
+  if grep -q "pam_faillock.so preauth" "$pam"; then
+    sed -i "0,/pam_faillock.so preauth/{/pam_faillock.so preauth/a $line
+}" "$pam"
+  else
+    sed -i "1a $line" "$pam"
+  fi
+  echo "Ligado. Cópia do arquivo original: $backup"
 fi
 echo
 sed -n '1,4p' "$pam"

@@ -48,11 +48,17 @@ object UnlockKey {
         KeyPairGenerator.getInstance(KeyProperties.KEY_ALGORITHM_EC, "AndroidKeyStore").apply { initialize(spec) }.generateKeyPair()
     }
 
+    /** What is signed: a fixed label, the PC's name and its nonce (a signature for one PC is worthless on another). */
+    fun message(host: String, nonce: ByteArray): ByteArray = "omarchy-remote-unlock-v1\u0000$host\u0000".toByteArray() + nonce
+
+    /** The PC's name as its service knows it (its MagicDNS name): lowercase, no final dot, no port. */
+    fun hostName(address: String): String = address.trim().lowercase().substringBefore(':').removeSuffix(".")
+
     /**
-     * Asks for the fingerprint, then signs [nonce] (base64). [done] gets the signature (base64), or
-     * null with why (cancelled, key gone after a new fingerprint, no biometric).
+     * Asks for the fingerprint, then signs [nonce] (base64) for the PC [host]. [done] gets the
+     * signature (base64), or null with why (cancelled, key gone after a new fingerprint, no biometric).
      */
-    fun sign(activity: Activity, pcName: String, nonce: String, done: (String?, String?) -> Unit) {
+    fun sign(activity: Activity, pcName: String, host: String, nonce: String, done: (String?, String?) -> Unit) {
         val signature = runCatching {
             Signature.getInstance("SHA256withECDSA").apply { initSign(store().getKey(ALIAS, null) as java.security.PrivateKey) }
         }.getOrElse {
@@ -70,7 +76,7 @@ object UnlockKey {
             object : BiometricPrompt.AuthenticationCallback() {
                 override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
                     val s = result.cryptoObject?.signature ?: return done(null, "failed")
-                    val signed = runCatching { s.update(Base64.decode(nonce, Base64.NO_WRAP)); s.sign() }.getOrNull()
+                    val signed = runCatching { s.update(message(host, Base64.decode(nonce, Base64.NO_WRAP))); s.sign() }.getOrNull()
                     done(signed?.let { Base64.encodeToString(it, Base64.NO_WRAP) }, if (signed == null) "failed" else null)
                 }
 

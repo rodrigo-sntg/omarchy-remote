@@ -34,7 +34,7 @@ def control_command(control: str, value) -> list[str]:
     if control == "power":
         if not isinstance(value, str) or not _PROFILE.fullmatch(value):
             raise ValueError("invalid profile")
-        return ["omarchy-powerprofiles-set", value]
+        return ["omarchy-powerprofiles-set", "autodetect", value]  # [ac|battery|autodetect] [profile]
     if control in TOGGLES:
         return list(TOGGLES[control])
     raise ValueError("unknown control")

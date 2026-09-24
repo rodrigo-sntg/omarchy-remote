@@ -367,6 +367,30 @@ class KeypadViewModel(application: Application) : AndroidViewModel(application) 
         prefs.edit { putBoolean("pc_notifications", value) }
     }
 
+    /** The PC's screen and the terminal kept out of screenshots, screen recordings and the recents preview. */
+    var secureScreens by mutableStateOf(prefs.getBoolean("secure_screens", true))
+        private set
+
+    fun changeSecureScreens(value: Boolean) {
+        secureScreens = value
+        prefs.edit { putBoolean("secure_screens", value) }
+    }
+
+    /** Something another app shared, waiting for the person to confirm before it goes to the PC. */
+    data class PendingShare(val text: String? = null, val openLink: Boolean = false, val files: List<android.net.Uri> = emptyList())
+
+    var pendingShare by mutableStateOf<PendingShare?>(null)
+
+    fun confirmShare() {
+        val share = pendingShare ?: return
+        pendingShare = null
+        when {
+            share.files.isNotEmpty() -> sendFiles(share.files)
+            share.text != null && share.openLink -> openUrlOnPc(share.text)
+            share.text != null -> sendClipboardToPc(share.text)
+        }
+    }
+
     /** The PC's lock screen and unlocking it with the fingerprint (network UnlockKey, host unlock.py). */
     val pcLock: StateFlow<com.sandevsystems.omarchyremote.network.PcLock?> = network.pcLock
 
@@ -389,7 +413,10 @@ class KeypadViewModel(application: Application) : AndroidViewModel(application) 
                         }
                     }
                     "unlock.challenge" -> {
+                        // Only an answer to our own request: a PC can't pop the fingerprint prompt by itself.
+                        if (unlockStep != Unlock.ASKING_PC) return@collect
                         val activity = unlockActivity?.get()
+                        unlockActivity = null
                         if (!r.ok || r.nonce == null || activity == null) {
                             unlockStep = Unlock.IDLE
                             if (r.reason == "not-enrolled") { com.sandevsystems.omarchyremote.network.UnlockKey.delete() }
@@ -397,7 +424,8 @@ class KeypadViewModel(application: Application) : AndroidViewModel(application) 
                             return@collect
                         }
                         unlockStep = Unlock.FINGER
-                        com.sandevsystems.omarchyremote.network.UnlockKey.sign(activity, pcName(), r.nonce) { signature, why ->
+                        com.sandevsystems.omarchyremote.network.UnlockKey.sign(activity, pcName(),
+                            com.sandevsystems.omarchyremote.network.UnlockKey.hostName(networkAddress), r.nonce) { signature, why ->
                             if (signature == null) {
                                 unlockStep = Unlock.IDLE
                                 if (why == "invalidated") message = tr("Uma digital nova foi cadastrada no celular: configure o desbloqueio de novo.",

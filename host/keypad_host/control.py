@@ -64,8 +64,7 @@ async def handle_command(cmd, hub) -> dict:
                 return {"ok": False, "error": "Aparelho desconhecido (veja omarchy-remote devices)."}
             if getattr(hub, "unlock_keys", None) is not None:
                 hub.unlock_keys.remove(name)   # a revoked phone can't unlock the PC either
-            if hub.phone and hub.phone.lower() == name.lower().split(".")[0]:
-                hub.kick()
+            hub.kick(name)   # every connection of that device: session, terminal, screen
             return {"ok": True}
         case "new-code":
             hub.rotate_token()

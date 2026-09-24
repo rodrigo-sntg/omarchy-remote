@@ -16,7 +16,7 @@ from .herdr import HerdrError
 from .pcstats import read_stats
 from .thumbs import thumb_message
 from .version import RUNNING, fingerprint
-from .browse import folder_listing, open_url_command, roots, within_home
+from .browse import fetchable, folder_listing, open_url_command, roots, within_home
 from .controls import control_command, read_controls
 from .clip import get_clipboard, set_clipboard
 from .theme import theme_file
@@ -71,6 +71,7 @@ class Hub:
         self.media = None           # what plays on the PC, as last pushed (a phone that connects gets it)
         self.devices = None         # the phones seen and revoked (omarchy-remote devices)
         self.rotate_token = lambda: None  # set by the service: a new pairing code
+        self.sockets: dict = {}     # every open authorized WebSocket -> the device (MagicDNS name) it belongs to
         self.offers = Offers()
         # Leaving the app briefly closes the session; notices wait out this grace period.
         self.grace = grace
@@ -94,22 +95,27 @@ class Hub:
             json.dump(data, f)
         os.replace(tmp, self.state_path)
 
-    async def offer(self, path, kind: str = "file", tag: str | None = None, temporary: bool = False) -> bool:
+    async def offer(self, path, kind: str = "file", tag: str | None = None, temporary: bool = False, check=None) -> bool:
         """Tells the phone a file waits for it (it downloads GET /v1/file/<id>)."""
         if not self.connected:
             if temporary:
                 Path(path).unlink(missing_ok=True)
             return False
-        message = {"type": "file.offer", **self.offers.add(Path(path), temporary), "kind": kind}
+        message = {"type": "file.offer", **self.offers.add(Path(path), temporary, check), "kind": kind}
         if tag:
             message["tag"] = tag
         return await self.push(message)
 
-    def kick(self):
-        """Drops the phone connected now (revoked, or the pairing code changed)."""
-        ws = self._state["control"]
-        if ws is not None and not ws.closed:
-            asyncio.get_event_loop().create_task(ws.close(code=4001, message=b"revoked"))
+    def kick(self, device: str | None = None):
+        """Closes every connection (main session, terminal, screen, display) of [device] (short or
+        full name), or of everyone when None: revoked, or the pairing code changed."""
+        key = device.lower().rstrip(".") if device else None
+        for ws, owner in list(self.sockets.items()):
+            if ws.closed:
+                self.sockets.pop(ws, None)
+                continue
+            if key is None or owner == key or (owner or "").split(".")[0] == key:
+                asyncio.get_event_loop().create_task(ws.close(code=4001, message=b"revoked"))
 
     async def push(self, message: dict) -> bool:
         ws = self._state["control"]
@@ -161,6 +167,7 @@ class Hub:
 
 
 HUB_KEY = web.AppKey("hub", Hub)
+STABLE_ID = web.RequestKey("stable_id", object)  # Tailscale StableID of the device asking
 # Phone requests answered by other programs (wl-copy, bash checks, playerctl, hyprctl): off the input loop.
 SLOW_TYPES = {"thumb.get", "stats.get", "host.get", "host.restart", "pc.open_url", "files.list", "files.fetch", "controls.get", "pc.control", "clipboard.set", "clipboard.get", "menu.get", "menu.run", "menu.show", "now.get", "media.cmd",
               "binds.get", "windows.get", "window.act", "pc.act", "shot.get", "usage.get"}
@@ -197,7 +204,9 @@ def create_app(
     hub.unlock_keys = unlocker.keys if unlocker is not None else None
     phone_notices = PhoneNotices(hub) if phone_notices_factory is None else phone_notices_factory(hub)
 
-    async def authorize(request: web.Request) -> str:
+    async def authorize(request: web.Request, need_session: bool = False) -> str:
+        """The device asking (its MagicDNS name), or 403. [need_session]: the screen, terminal and
+        file routes serve only the device whose main session (/v1) is open, never a second one."""
         # Browsers always send Origin; the app never does. A web page must not reach these endpoints.
         if "Origin" in request.headers or not token_matches(request.headers.get(TOKEN_HEADER), current_token()):
             log.warning("refused request without valid pairing code (or from a browser)")
@@ -208,10 +217,16 @@ def create_app(
         if not is_allowed(identity, allowed, tailnet, owner):
             log.warning("refused %s (%s)", address, machine_name(identity))
             raise web.HTTPForbidden(text="machine not allowed")
-        if devices is not None and devices.revoked(machine_name(identity)):
-            log.warning("refused revoked %s", machine_name(identity))
+        name = machine_name(identity)
+        stable = ((identity or {}).get("Node") or {}).get("StableID")
+        if devices is not None and devices.revoked(name, stable):
+            log.warning("refused revoked %s", name)
             raise web.HTTPForbidden(text="device revoked")
-        return machine_name(identity)
+        request[STABLE_ID] = stable
+        if need_session and not (state["active"] is not None and not state["active"].closed and state["owner"] == name):
+            log.warning("refused %s: no open session of its own", name)
+            raise web.HTTPForbidden(text="open the app's session first")
+        return name
 
     async def handle(request: web.Request) -> web.StreamResponse:
         identity = await authorize(request)
@@ -233,9 +248,12 @@ def create_app(
 
         session = Session(uuid.uuid4().hex, injector, time.monotonic(), timeout, desktop=hyprland)
         state["active"], state["owner"], state["control"] = session, identity, ws
+        hub.sockets[ws] = identity
+        if unlocker is not None:
+            session.input_blocked = lambda: unlocker.input_blocked
         hub.opened(identity.split(".")[0] if identity else "celular")
         if devices is not None and identity:
-            devices.seen(identity)
+            devices.seen(identity, request.get(STABLE_ID))
         log.info("session %s from %s", session.session_id[:8], identity)
         if hub.media:
             await ws.send_json(hub.media)
@@ -303,6 +321,7 @@ def create_app(
             if follower:
                 follower.stop()
             slow_worker.cancel()
+            hub.sockets.pop(ws, None)
             session.close()  # releases keys and buttons
             if state["active"] is session:
                 state["active"] = None
@@ -333,7 +352,7 @@ def create_app(
 
     async def send_file(request: web.Request) -> web.StreamResponse:
         """A file the PC offered to the phone (file.offer): only with the pairing code, only while offered."""
-        await authorize(request)
+        await authorize(request, need_session=True)
         path = hub.offers.get(request.match_info["offer_id"])
         if path is None:
             raise web.HTTPNotFound(text="offer expired")
@@ -397,8 +416,9 @@ def create_app(
                         listing = await asyncio.to_thread(folder_listing, str(home), home)
                     await ws.send_json({"type": "files", **listing, "roots": roots(home)})
                 elif last.type == "files.fetch":
-                    real = within_home(last.payload["path"], Path.home())
-                    ok = real is not None and os.path.isfile(real) and os.path.getsize(real) <= MAX_UPLOAD and await hub.offer(real)
+                    real = fetchable(last.payload["path"], Path.home())
+                    ok = real is not None and os.path.isfile(real) and os.path.getsize(real) <= MAX_UPLOAD and \
+                        await hub.offer(real, check=lambda p: fetchable(p, Path.home()) == p)
                     await ws.send_json({"type": "ack", "seq": last.seq, "ok": bool(ok)})
                 elif last.type == "controls.get":
                     await ws.send_json(await read_controls())
@@ -691,8 +711,8 @@ def create_app(
                 if kind in ("screen.switch", "screen.quality") and control is not None:
                     await switch(data)
                     continue
-                if view_only:
-                    continue
+                if view_only or (unlocker is not None and unlocker.input_blocked):
+                    continue  # (input_blocked: the PC is asking whether a phone may unlock it)
                 if kind == "pen" and layout:
                     try:
                         state, px, py, pressure = parse_pen(data)
@@ -764,7 +784,7 @@ def create_app(
     async def open_stream(request, key: str, needs_desktop: bool = True, max_msg_size: int = MAX_FRAME):
         """Authorized WebSocket with protocol pings, one per kind (video, term). A new one (switching
         monitor, the app coming back) takes over: the previous is closed and cleaned up first."""
-        await authorize(request)
+        identity = await authorize(request, need_session=True)
         # Protocol-level pings detect a phone that vanished.
         ws = web.WebSocketResponse(max_msg_size=max_msg_size, heartbeat=5.0)
         await ws.prepare(request)
@@ -780,6 +800,7 @@ def create_app(
             await ws.close()
             return ws, False
         state[key] = ws
+        hub.sockets[ws] = identity
         return ws, True
 
     async def display(request: web.Request) -> web.StreamResponse:
@@ -1003,7 +1024,7 @@ def create_app(
 
     async def receive_file(request: web.Request) -> web.Response:
         """A file shared on the phone: streamed into Downloads under a new name, then a notice on the PC."""
-        await authorize(request)
+        await authorize(request, need_session=True)
         raw_name = urllib.parse.unquote(request.headers.get("X-Keypad-Name", ""))
         name = safe_name(raw_name)
         if (request.content_length or 0) > MAX_UPLOAD:

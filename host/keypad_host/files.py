@@ -45,6 +45,10 @@ def agent_inbox(cwd: str | None) -> Path | None:
         return None
     project = Path(cwd)
     inbox = project / AGENT_FOLDER
+    # A cloned repository may ship .omarchy-remote as a link to elsewhere (~/.config/autostart…):
+    # never follow it, only a real folder of this project.
+    if inbox.is_symlink() or (inbox.exists() and not inbox.is_dir()):
+        return None
     inbox.mkdir(exist_ok=True)
     info = project / ".git" / "info"
     if info.is_dir():
@@ -92,19 +96,27 @@ class Offers:
         self.ttl = ttl
         self.clock = clock or time.monotonic
         self._items: dict[str, tuple[Path, float, bool]] = {}
+        self._checks: dict = {}
 
-    def add(self, path: Path, temporary: bool = False) -> dict:
+    def add(self, path: Path, temporary: bool = False, check=None) -> dict:
+        """[check]: asked again when the phone downloads it (a file the phone picked may have been
+        swapped for a link to somewhere else meanwhile)."""
         import secrets
         self.sweep()
         path = Path(path)
         offer_id = secrets.token_urlsafe(18)
         self._items[offer_id] = (path, self.clock() + self.ttl, temporary)
+        if check is not None:
+            self._checks[offer_id] = check
         return {"id": offer_id, "name": path.name, "size": path.stat().st_size}
 
     def get(self, offer_id: str) -> Path | None:
         self.sweep()
         item = self._items.get(offer_id)
-        return item[0] if item and item[0].is_file() else None
+        if not item or not item[0].is_file():
+            return None
+        check = self._checks.get(offer_id)
+        return item[0] if check is None or check(str(item[0])) else None
 
     def sweep(self):
         now = self.clock()

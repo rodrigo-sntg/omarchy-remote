@@ -41,3 +41,30 @@ def test_the_usual_folders_are_the_roots(tmp_path):
         (tmp_path / name).mkdir()
     got = roots(tmp_path)
     assert [r["path"] for r in got] == [str(tmp_path / "Downloads"), str(tmp_path / "Documents"), str(tmp_path / "Pictures"), str(tmp_path)]
+
+
+def test_hidden_files_and_folders_are_never_brought_to_the_phone(tmp_path):
+    from keypad_host.browse import fetchable
+    (tmp_path / ".ssh").mkdir()
+    (tmp_path / ".ssh" / "id_ed25519").write_text("key")
+    (tmp_path / "Docs").mkdir()
+    (tmp_path / "Docs" / "a.pdf").write_text("pdf")
+    (tmp_path / "Docs" / ".env").write_text("secret")
+    (tmp_path / "Docs" / "link.pdf").symlink_to(tmp_path / ".ssh" / "id_ed25519")
+    assert fetchable(str(tmp_path / "Docs" / "a.pdf"), tmp_path) == str(tmp_path / "Docs" / "a.pdf")
+    assert fetchable(str(tmp_path / ".ssh" / "id_ed25519"), tmp_path) is None
+    assert fetchable(str(tmp_path / "Docs" / ".env"), tmp_path) is None
+    assert fetchable(str(tmp_path / "Docs" / "link.pdf"), tmp_path) is None     # a link into a hidden folder
+    assert fetchable("/etc/passwd", tmp_path) is None
+
+
+def test_an_offer_is_checked_again_when_downloaded(tmp_path):
+    from keypad_host.files import Offers
+    f = tmp_path / "a.pdf"
+    f.write_text("pdf")
+    ok = {"v": True}
+    offers = Offers()
+    offer = offers.add(f, check=lambda p: ok["v"])
+    assert offers.get(offer["id"]) == f
+    ok["v"] = False                         # swapped for a link to a secret since it was offered
+    assert offers.get(offer["id"]) is None

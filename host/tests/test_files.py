@@ -3,6 +3,7 @@ import urllib.parse
 
 from aiohttp.test_utils import TestClient, TestServer
 
+from tests.controller import controller
 from keypad_host.files import safe_name, unique_path
 from keypad_host.server import TOKEN_HEADER, create_app
 from tests.test_server import PHONE, TAILNET, TOKEN
@@ -35,7 +36,7 @@ def upload(tmp_path, body: bytes, name: str, headers=None):
 
         app = create_app(FakeInjector(), {"samsung-sm-s928b"}, TAILNET, TOKEN, whois, downloads=tmp_path,
                          notify=lambda *a: notices.append(a))
-        async with TestClient(TestServer(app)) as client:
+        async with TestClient(TestServer(app)) as client, controller(client):
             h = {TOKEN_HEADER: TOKEN, "X-Keypad-Name": urllib.parse.quote(name)}
             h.update(headers or {})
             response = await client.post("/v1/file", data=body, headers=h)
@@ -112,7 +113,7 @@ def test_a_file_sent_from_the_pc_is_offered_and_downloaded(tmp_path):
             return PHONE
 
         app = create_app(FakeInjector(), {"samsung-sm-s928b"}, TAILNET, TOKEN, whois)
-        async with TestClient(TestServer(app)) as client:
+        async with TestClient(TestServer(app)) as client, controller(client):
             ws = await client.ws_connect("/v1", headers={TOKEN_HEADER: TOKEN})
             await ws.receive_json()
             hub = app[HUB_KEY]
@@ -155,7 +156,7 @@ def test_the_phone_asks_for_a_print_of_a_monitor_region(tmp_path):
 
         app = create_app(FakeInjector(), {"samsung-sm-s928b"}, TAILNET, TOKEN, whois, hyprland=CursorHyprland(),
                          shoot=shoot, shots_dir=tmp_path)
-        async with TestClient(TestServer(app)) as client:
+        async with TestClient(TestServer(app)) as client, controller(client):
             ws = await client.ws_connect("/v1", headers={TOKEN_HEADER: TOKEN})
             sid = (await ws.receive_json())["sessionId"]
             await ws.send_str(json.dumps({"v": 1, "sessionId": sid, "seq": 1, "type": "shot.get",
@@ -212,7 +213,7 @@ def upload_for_agent(tmp_path, herdr, agent):
             return PHONE
 
         app = create_app(FakeInjector(), {"samsung-sm-s928b"}, TAILNET, TOKEN, whois, downloads=tmp_path / "dl", herdr=herdr)
-        async with TestClient(TestServer(app)) as client:
+        async with TestClient(TestServer(app)) as client, controller(client):
             h = {TOKEN_HEADER: TOKEN, "X-Keypad-Name": urllib.parse.quote("tela do app.png"), "X-Keypad-Agent": agent}
             response = await client.post("/v1/file", data=b"img", headers=h)
             return response.status, await response.json()

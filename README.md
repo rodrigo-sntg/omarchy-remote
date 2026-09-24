@@ -18,7 +18,7 @@ It checks what's needed, installs, asks you before anything that needs `sudo` or
 
 - **Control:** trackpad (tap, drag, two-finger scroll, three-finger workspace switch), keyboard that types in the PC's layout, shortcut row, workspace buttons.
 - **Screen:** a live map of your monitors with thumbnails; see and touch the PC's screen from anywhere; follow the focused window; use the phone as an extra display.
-- **AI agents:** Claude Code and Codex running in [herdr](https://herdr.dev), as chats: the whole conversation, permission requests as buttons, diffs, the `/` menu of each agent, subagents, the project's git status, model picker, voice input. Notifications when an agent needs you or finishes, answerable from the lock screen.
+- **AI agents:** Claude Code and Codex running in [herdr](https://herdr.dev), as chats: the whole conversation, permission requests as buttons, diffs, the `/` menu of each agent, subagents, the project's git status, model picker, voice input. Notifications when an agent needs you or finishes, with Allow, Deny and Reply (after unlocking the phone).
 - **Control center:** media, volume and output, microphone, night light, do not disturb, stay awake, screen recording, power profile, wallpaper, bar, gaps, lock, suspend, restart and shut down.
 - **Omarchy:** the app follows the active Omarchy theme; Omarchy's menu, keybindings and windows are one tap away; a *Phone* menu and a bar icon on the PC.
 - **Files and clipboard:** send files and screenshots both ways, with progress; the clipboard syncs by itself.
@@ -75,10 +75,13 @@ How it works: the phone keeps an EC key that only its fingerprint unlocks; the P
 ## Security
 
 - The PC service listens **only on the Tailscale address** (port 8765). A connection needs all of: the pairing code, a machine of **your own** in this tailnet (checked with `tailscale whois`; tagged machines and other tailnets are refused), and no browser `Origin`.
-- Unencrypted WebSocket is allowed only to `*.ts.net` names: Tailscale already encrypts the traffic (WireGuard).
+- Unencrypted WebSocket is allowed only to `*.ts.net` names, and the app connects only to Tailscale addresses (100.64.0.0/10, fd7a:115c:a1e0::/48): Tailscale encrypts the traffic (WireGuard), and with Tailscale off nothing is sent.
+- Anything another app shares to Omarchy Remote goes to the PC only after you confirm it. The PC screen and the terminal stay out of screenshots and recent apps (a setting).
 - The pairing code lives in `~/.config/omarchy-remote/token` (readable only by you) and, on the phone, encrypted with an Android Keystore key.
 - `omarchy-remote devices` lists the phones that connected; `omarchy-remote devices revoke <name>` shuts one out even with the code (and removes its unlock key); `omarchy-remote new-code` changes the code for every phone. To allow only specific machines, add `--allow <machine>` with `systemctl --user edit omarchy-remote-host.service`.
-- One controller at a time. Without messages for 6 seconds, the service releases every key and button and ends the session.
+- One controller at a time. The screen, terminal and file routes serve only the device holding the main session. Without messages for 6 seconds, the service releases every key and button and ends the session.
+- Revoking a phone closes all its connections (terminal and screen included) and matches it by Tailscale's stable ID, so renaming it doesn't bring it back.
+- Meant for a PC with one person using it: the virtual keyboard (`/dev/uinput`) is given to whoever is logged in. On a shared PC, see [`packaging/aur/60-omarchy-remote.rules`](packaging/aur/60-omarchy-remote.rules).
 
 ## On the PC
 
