@@ -27,16 +27,34 @@ Requirements: Omarchy (Hyprland), Tailscale signed in on the PC and on the phone
 ```bash
 git clone https://github.com/rodrigo-sntg/omarchy-remote
 cd omarchy-remote
-host/omarchy-remote-setup
+make install
 ```
 
-The setup checks Tailscale, starts the service (a systemd user unit), adds the *Phone* menu (Super+Space › Phone), the bar icon and the theme hook, offers to turn on Wake-on-LAN, and shows the pairing QR code. In the app: **PC › Network › Scan the PC's QR code**. Run it again at any time; `host/omarchy-remote-remove` undoes it.
+The setup checks Tailscale, starts the service (a systemd user unit), adds the *Phone* menu (Super+Space › Phone), the bar icon and the theme hook, offers to turn on Wake-on-LAN, and shows the pairing QR code. In the app: **PC › Network › Scan the PC's QR code**. Run it again at any time; `make uninstall` undoes it.
+
+### Commands
+
+Run `make` to see them all:
+
+| Command | What it does |
+|---|---|
+| `make install` | Set up the PC: service, Omarchy menu and bar icon, Wake-on-LAN, pairing QR |
+| `make uninstall` | Undo the setup (keeps the pairing code and the list of phones) |
+| `make pair` | Show the pairing QR code |
+| `make status` | Is a phone connected? |
+| `make restart` | Restart the PC service (after an update) |
+| `make logs` | Follow the PC service's log |
+| `make unlock` / `make unlock-remove` | Turn the fingerprint unlock on / off (asks for sudo) |
+| `make apk` / `make install-apk` | Build the debug APK / build and install it over adb (`DEVICE=<serial>` to pick a phone) |
+| `make apk-release` | Build the signed release APK into `dist/` |
+| `make test` | Run every test (`make test-host`, `make test-app`, `make lint`) |
+| `make dev` | Run the service for testing on 127.0.0.1 (phone through `adb reverse`) |
 
 An AUR package (`omarchy-remote-git`) is ready in [`packaging/aur/`](packaging/aur/) and not yet published.
 
 ### Fingerprint unlock (optional)
 ```bash
-sudo host/omarchy-remote-unlock-setup          # once; undo with --remove
+make unlock          # once, asks for sudo; undo with: make unlock-remove
 ```
 Then, with the PC unlocked: **Settings › Unlock the PC with your fingerprint › Enroll** in the app, and click the notification that shows up on the PC.
 
