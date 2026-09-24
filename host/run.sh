@@ -1,6 +1,7 @@
 #!/bin/sh
 # Starts the Omarchy Remote host on this machine's Tailscale address.
-# Usage: host/run.sh --allow <phone machine name in Tailscale> [--port 8765]
+# Usage: host/run.sh [--allow <machine>] [--port 8765]   (default: any of your own Tailscale devices)
+# The first start makes its own Python environment (.venv) from requirements.txt.
 set -e
 cd "$(dirname "$0")"
 if [ ! -x .venv/bin/python ]; then
