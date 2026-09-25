@@ -74,7 +74,7 @@ import com.sandevsystems.omarchyremote.network.Workspace
 import kotlinx.coroutines.delay
 
 /** The app's four places, one purpose each (design: the "Novo app" canvas page). */
-enum class MainTab { CONTROL, SCREEN, AGENTS, PC }
+enum class MainTab { CONTROL, AGENTS, PC }
 
 private val CardShape = RoundedCornerShape(22.dp)
 
@@ -96,7 +96,6 @@ fun TabBar(current: MainTab, waiting: Int, vertical: Boolean, onSelect: (MainTab
     val view = LocalView.current
     val items = listOf(
         Triple(MainTab.CONTROL, Glyph.Mouse, tr("Controle", "Control")),
-        Triple(MainTab.SCREEN, Glyph.ViewPc, tr("Tela", "Screen")),
         Triple(MainTab.AGENTS, Glyph.Terminal, tr("Agentes", "Agents")),
         Triple(MainTab.PC, RemoteMark, "Omarchy"),
     )
@@ -203,7 +202,12 @@ private const val THUMB_EVERY_MS = 3_000L
  * (design 1A). A monitor opens Ver PC on it; the rest of the strip opens the cursor's.
  */
 @Composable
-fun MonitorStrip(monitors: List<MonitorInfo>, cursor: CursorAt?, thumbs: Map<String, androidx.compose.ui.graphics.ImageBitmap> = emptyMap(), onOpen: (String?) -> Unit) {
+fun MonitorStrip(
+    monitors: List<MonitorInfo>, cursor: CursorAt?, thumbs: Map<String, androidx.compose.ui.graphics.ImageBitmap> = emptyMap(),
+    /** The other things to look at (the focused window, the phone as a screen), behind "⋯". */
+    more: List<Pair<String, () -> Unit>> = emptyList(),
+    onOpen: (String?) -> Unit,
+) {
     val real = monitors.filter { !it.extra }
     if (real.isEmpty()) return
     val names = monitorNames(real)
@@ -253,9 +257,29 @@ fun MonitorStrip(monitors: List<MonitorInfo>, cursor: CursorAt?, thumbs: Map<Str
                     color = if (here) KeypadColors.Text else KeypadColors.TextMute, maxLines = 1)
             }
         }
-        Column(horizontalAlignment = Alignment.End) {
-            Text(tr("Ver PC", "View PC"), style = KeypadType.KeySmall.copy(fontWeight = FontWeight.Bold), color = KeypadColors.Text)
-            Icon(Glyph.ChevronRight, null, Modifier.size(18.dp), tint = KeypadColors.TextDim)
+        Column(Modifier.fillMaxHeight(), horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.SpaceBetween) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(tr("Ver PC", "View PC"), style = KeypadType.KeySmall.copy(fontWeight = FontWeight.Bold), color = KeypadColors.Text)
+                Icon(Glyph.ChevronRight, null, Modifier.size(18.dp), tint = KeypadColors.TextDim)
+            }
+            if (more.isNotEmpty()) {
+                var open by remember { mutableStateOf(false) }
+                Box {
+                    Box(
+                        Modifier.size(36.dp).clip(CircleShape).background(KeypadColors.Surface3)
+                            .clickable(onClickLabel = tr("Outras fontes", "Other sources")) { Haptic.tap(view); open = true },
+                        contentAlignment = Alignment.Center,
+                    ) { Icon(Glyph.More, tr("Outras fontes", "Other sources"), Modifier.size(18.dp), tint = KeypadColors.Text) }
+                    androidx.compose.material3.DropdownMenu(open, { open = false }, containerColor = KeypadColors.Surface2) {
+                        for ((label, action) in more) {
+                            androidx.compose.material3.DropdownMenuItem(
+                                { Text(label, style = GroupType.Lead, color = KeypadColors.Text) },
+                                { open = false; action() },
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -400,87 +424,6 @@ fun KeyboardPanel(vm: KeypadViewModel, onClose: () -> Unit, modifier: Modifier =
 
 // ---------------------------------------------------------------- Tela
 
-/** Where to look (design 3B): the monitors side by side with the workspace, then the other sources. */
-@Composable
-fun ScreenTab(vm: KeypadViewModel, onOpenMonitor: (String?) -> Unit, onWindow: () -> Unit, onPhoneScreen: () -> Unit, modifier: Modifier = Modifier) {
-    val monitors by vm.monitorMap.collectAsStateWithLifecycle()
-    val cursor by vm.cursorAt.collectAsStateWithLifecycle()
-    val workspaces by vm.workspaces.collectAsStateWithLifecycle()
-    val real = monitors.filter { !it.extra }.sortedBy { it.x }
-    Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        LargeTitle(tr("Tela", "Screen"), AnnotatedString(tr("Toque num monitor para ver e usar o PC daqui", "Tap a monitor to see and use the PC from here")))
-        if (real.isNotEmpty()) {
-            SectionLabel(tr("Monitores", "Monitors"))
-            Group {
-                LiveThumbs(vm, real)
-                MonitorRow(real, cursor, vm.thumbs, onOpenMonitor)
-                if (workspaces.isNotEmpty()) {
-                    GroupDivider()
-                    Row(Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(start = 16.dp, end = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text("Workspace", Modifier.weight(1f), style = GroupType.Title, color = KeypadColors.Text)
-                        Segmented(workspaces.map { "${it.id}" }, workspaces.indexOfFirst { it.focused }, "Workspace",
-                            { vm.goToWorkspace(workspaces[it].id) }, Modifier.widthIn(max = 230.dp))
-                    }
-                }
-            }
-        }
-        SectionLabel(tr("Outras fontes", "Other sources"))
-        Group {
-            GroupRow(tr("Janela em foco", "Focused window"), tr("Segue a janela ativa", "Follows the active window"), onWindow, icon = Glyph.Swap)
-            GroupDivider(60.dp)
-            GroupRow(tr("Celular como tela", "Phone as a screen"), tr("Vira um monitor a mais", "Becomes one more monitor"), onPhoneScreen, icon = Glyph.Phone)
-        }
-        Spacer(Modifier.height(12.dp))
-    }
-}
-
-/** The monitors in proportion, bottoms aligned like on a desk; the cursor's one outlined, with its dot. */
-@Composable
-private fun MonitorRow(monitors: List<MonitorInfo>, cursor: CursorAt?, thumbs: Map<String, androidx.compose.ui.graphics.ImageBitmap>, onOpen: (String?) -> Unit) {
-    val names = monitorNames(monitors)
-    val view = LocalView.current
-    BoxWithConstraints(Modifier.fillMaxWidth().padding(16.dp)) {
-        val gap = 12f
-        val spanW = monitors.sumOf { it.width }.toFloat()
-        val scale = minOf((maxWidth.value - gap * (monitors.size - 1)) / spanW, 90f / monitors.maxOf { it.height })
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(gap.dp, Alignment.CenterHorizontally), verticalAlignment = Alignment.Bottom) {
-            for (m in monitors) {
-                val here = cursor?.monitor == m.name
-                val name = names[m.name] ?: m.name
-                Column(
-                    Modifier.clip(RoundedCornerShape(10.dp)).clickable(onClickLabel = tr("Ver $name", "View $name")) { Haptic.tap(view); onOpen(m.name) }
-                        .semantics { contentDescription = "$name, ${m.width}×${m.height}" + if (here) tr(", cursor aqui", ", cursor here") else "" },
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    Box(Modifier.size((m.width * scale).dp, (m.height * scale).dp).clip(RoundedCornerShape(8.dp)).background(KeypadColors.Surface3)) {
-                        thumbs[m.name]?.let { androidx.compose.foundation.Image(it, null, Modifier.fillMaxSize(), contentScale = androidx.compose.ui.layout.ContentScale.Crop) }
-                        Canvas(Modifier.fillMaxSize()) {
-                            val r = 8.dp.toPx()
-                            drawRoundRect(if (here) KeypadColors.Text else KeypadColors.Line2, style = Stroke((if (here) 2 else 1).dp.toPx()),
-                                cornerRadius = androidx.compose.ui.geometry.CornerRadius(r))
-                            if (here && cursor != null) {
-                                val dot = 5.dp.toPx()
-                                val c = Offset((cursor.x * size.width).coerceIn(dot * 2, size.width - dot * 2), (cursor.y * size.height).coerceIn(dot * 2, size.height - dot * 2))
-                                drawCircle(KeypadColors.Text.copy(alpha = 0.18f), dot * 2, c)
-                                drawCircle(KeypadColors.Text, dot, c)
-                            }
-                        }
-                    }
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text(name, style = GroupType.Lead.copy(fontWeight = FontWeight.SemiBold), color = KeypadColors.Text, maxLines = 1)
-                            if (here) {
-                                Box(Modifier.size(6.dp).clip(CircleShape).background(KeypadColors.Text))
-                                Text(tr("cursor aqui", "cursor here"), style = GroupType.Sub.copy(fontWeight = FontWeight.Medium), color = KeypadColors.TextDim, maxLines = 1)
-                            }
-                        }
-                        Text("${m.width}×${m.height}", style = GroupType.Sub, color = KeypadColors.TextDim, maxLines = 1)
-                    }
-                }
-            }
-        }
-    }
-}
 
 // ---------------------------------------------------------------- PC (PcTab.kt)
 

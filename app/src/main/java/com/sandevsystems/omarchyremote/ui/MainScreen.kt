@@ -223,6 +223,11 @@ fun KeypadScreen(vm: KeypadViewModel) {
         screenSize(context).let { (w, h) -> vm.openScreen(w, h, monitor) }
     }
     fun openExtra() = screenSize(context).let { (w, h) -> vm.openDisplay(w, h) }
+    // Besides the monitors: the focused window and the phone as a screen (also in Ver PC's "Onde olhar").
+    val otherSources = listOf(
+        tr("Janela em foco", "Focused window") to { screenSize(context).let { (w, h) -> vm.openFocusedWindow(w, h) } },
+        tr("Celular como tela", "Phone as a screen") to ::openExtra,
+    )
 
     val view = LocalView.current
     DisposableEffect(connected) {
@@ -297,10 +302,6 @@ fun KeypadScreen(vm: KeypadViewModel) {
                 TabBar(tab, agents.count(AgentsText::needsYou), vertical = true, onSelect = { tab = it; layer = Layer.NONE })
                 Box(Modifier.weight(1f).fillMaxHeight()) {
                     when (tab) {
-                        MainTab.SCREEN -> ScreenTab(vm, { openViewPc(it) }, {
-                            val (w, h) = screenSize(context)
-                            vm.openFocusedWindow(w, h)
-                        }, ::openExtra)
                         MainTab.AGENTS -> AgentsTab(vm, selectedAgent, { selectedAgent = it }, { vm.openTerminal() })
                         MainTab.PC -> PcTab(vm, (state as? ConnectionState.Connected)?.host?.name ?: "PC", { omarchyTab = it; sheet = Sheet.OMARCHY }, { vm.openTerminal() })
                         MainTab.CONTROL -> Unit
@@ -319,7 +320,7 @@ fun KeypadScreen(vm: KeypadViewModel) {
                     }
                     if (connected && network) {
                         LiveThumbs(vm, monitors)
-                        MonitorStrip(monitors, cursor, vm.thumbs) { openViewPc(it) }
+                        MonitorStrip(monitors, cursor, vm.thumbs, otherSources) { openViewPc(it) }
                         WorkspacePills(workspaces, vm::goToWorkspace)
                     }
                     if (connected) ShortcutChips(vm.shortcutSlots, { vm.pressShortcut(it.key) }, { editSlot = it; sheet = Sheet.SHORTCUTS }, onEnter = { vm.typeKey(0x28) })
@@ -344,7 +345,7 @@ fun KeypadScreen(vm: KeypadViewModel) {
                             }
                             if (connected && network) {
                                 LiveThumbs(vm, monitors)
-                                MonitorStrip(monitors, cursor, vm.thumbs) { openViewPc(it) }
+                                MonitorStrip(monitors, cursor, vm.thumbs, otherSources) { openViewPc(it) }
                             }
                             val lock = pcLock
                             if (connected && network && lock?.locked == true) PcLockedCard(vm, lock) { unlockSetup = true }
@@ -355,10 +356,6 @@ fun KeypadScreen(vm: KeypadViewModel) {
                             }
                             Spacer(Modifier.height(if (showTabs) 4.dp else 12.dp).then(if (showTabs) Modifier else Modifier.navigationBarsPadding()))
                         }
-                        MainTab.SCREEN -> ScreenTab(vm, { openViewPc(it) }, {
-                            val (w, h) = screenSize(context)
-                            vm.openFocusedWindow(w, h)
-                        }, ::openExtra)
                         MainTab.AGENTS -> AgentsTab(vm, selectedAgent, { selectedAgent = it }, { vm.openTerminal() })
                         MainTab.PC -> PcTab(vm, (state as? ConnectionState.Connected)?.host?.name ?: "PC", { omarchyTab = it; sheet = Sheet.OMARCHY }, { vm.openTerminal() })
                     }
