@@ -57,4 +57,14 @@ class ShortcutsTest {
     fun superAloneIsAModifierOnlyBluetoothReport() {
         assertArrayEquals(byteArrayOf(0x08, 0, 0, 0, 0, 0, 0, 0), HidReports.keyboard(KeyStroke(0, SUPER)))
     }
+
+    @Test
+    fun copyPasteAndCutUseOmarchysUniversalClipboardOverTheNetwork() {
+        assertEquals("copy", Shortcuts.clipboardAction("copy", network = true))
+        assertEquals("paste", Shortcuts.clipboardAction("paste", network = true))
+        assertEquals("cut", Shortcuts.clipboardAction("cut", network = true))
+        assertEquals(null, Shortcuts.clipboardAction("undo", network = true))
+        // Over Bluetooth the PC may not be Omarchy: plain Ctrl+C / Ctrl+V.
+        assertEquals(null, Shortcuts.clipboardAction("copy", network = false))
+    }
 }

@@ -338,6 +338,10 @@ fun RemoteScreen(vm: KeypadViewModel) {
             )
             WorkspacePills(workspaces, idle && overlay == Overlay.NONE, vm::goToWorkspace)
         }
+        // Leaving in one tap (back takes two, as the edges trigger it by accident).
+        if (overlay == Overlay.NONE) {
+            LeaveButton(faded = idle, onLeave = vm::closeVideo, modifier = Modifier.align(Alignment.TopEnd).padding(end = 14.dp, top = 12.dp))
+        }
         // What is switched on, in words, with a way out: modes are easy to forget.
         val mode = when {
             vm.videoHold -> tr("Botão esquerdo segurado", "Left button held") to { vm.toggleVideoHold() }
@@ -529,6 +533,23 @@ private fun RemoteChip(monitor: String, mode: String, faded: Boolean, onClick: (
         Text(monitor, style = KeypadType.Mono.copy(fontSize = KeypadType.KeySmall.fontSize * 0.92f), color = KeypadColors.Text)
         if (mode.isNotEmpty()) Text(mode, style = KeypadType.Mono, color = KeypadColors.Attention)
         Icon(Glyph.ChevronDown, null, Modifier.size(16.dp), tint = KeypadColors.TextDim)
+    }
+}
+
+/** "✕ Sair": back to the app, in the chip's look; faded at rest like it. */
+@Composable
+private fun LeaveButton(faded: Boolean, onLeave: () -> Unit, modifier: Modifier) {
+    val view = LocalView.current
+    val alpha by animateFloatAsState(if (faded) 0.45f else 1f, tween(300), label = "leave")
+    val shape = RoundedCornerShape(17.dp)
+    Row(
+        modifier.alpha(alpha).heightIn(min = 34.dp).clip(shape).background(Color(0xC70A0D0F)).border(1.dp, Color.White.copy(alpha = 0.09f), shape)
+            .clickable(onClickLabel = tr("Sair da tela do PC", "Leave the PC's screen")) { Haptic.tap(view); onLeave() }
+            .padding(horizontal = 12.dp, vertical = 7.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Icon(Glyph.Close, null, Modifier.size(12.dp), tint = KeypadColors.Text)
+        Text(tr("Sair", "Leave"), style = KeypadType.Mono.copy(fontSize = KeypadType.KeySmall.fontSize * 0.92f), color = KeypadColors.Text)
     }
 }
 

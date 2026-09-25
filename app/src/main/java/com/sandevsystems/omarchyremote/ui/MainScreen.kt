@@ -323,7 +323,7 @@ fun KeypadScreen(vm: KeypadViewModel) {
                         MonitorStrip(monitors, cursor, vm.thumbs, otherSources) { openViewPc(it) }
                         WorkspacePills(workspaces, vm::goToWorkspace)
                     }
-                    if (connected) ShortcutChips(vm.shortcutSlots, { vm.pressShortcut(it.key) }, { editSlot = it; sheet = Sheet.SHORTCUTS }, onEnter = { vm.typeKey(0x28) })
+                    if (connected) ShortcutChips(vm.shortcutSlots, { vm.runShortcut(it) }, { editSlot = it; sheet = Sheet.SHORTCUTS }, onEnter = { vm.typeKey(0x28) })
                 }
                 trackpad(Modifier.weight(1f).fillMaxHeight())
                 if (connected) Column(Modifier.width(74.dp).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(9.dp, Alignment.CenterVertically)) {
@@ -351,8 +351,12 @@ fun KeypadScreen(vm: KeypadViewModel) {
                             if (connected && network && lock?.locked == true) PcLockedCard(vm, lock) { unlockSetup = true }
                             trackpad(Modifier.weight(1f))
                             if (connected) {
-                                ShortcutChips(vm.shortcutSlots, { vm.pressShortcut(it.key) }, { editSlot = it; sheet = Sheet.SHORTCUTS }, onEnter = { vm.typeKey(0x28) })
-                                KeyboardButton { layer = Layer.KEYBOARD }
+                                ShortcutChips(vm.shortcutSlots, { vm.runShortcut(it) }, { editSlot = it; sheet = Sheet.SHORTCUTS }, onEnter = { vm.typeKey(0x28) })
+                                // The two ways in, side by side where the thumb reaches: type, or see the PC.
+                                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    KeyboardButton(Modifier.weight(1f)) { layer = Layer.KEYBOARD }
+                                    if (network) ViewPcButton(true, { openViewPc() }, Modifier.weight(1f).height(56.dp), label = tr("Ver PC", "View PC"), wide = true)
+                                }
                             }
                             Spacer(Modifier.height(if (showTabs) 4.dp else 12.dp).then(if (showTabs) Modifier else Modifier.navigationBarsPadding()))
                         }

@@ -1,5 +1,8 @@
 package com.sandevsystems.omarchyremote.ui
 
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -514,16 +517,23 @@ private fun DockButton(icon: ImageVector, label: String, description: String, en
 
 /** Ver PC: accent over the network; over Bluetooth dashed and muted (it explains itself when tapped). */
 @Composable
-fun ViewPcButton(network: Boolean, onClick: () -> Unit, modifier: Modifier, label: String? = null) {
+fun ViewPcButton(network: Boolean, onClick: () -> Unit, modifier: Modifier, label: String? = null, wide: Boolean = false) {
     val content: @Composable () -> Unit = {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            val c = if (network) KeypadColors.OnAccent else KeypadColors.TextMute
+        val c = if (network) KeypadColors.OnAccent else KeypadColors.TextMute
+        if (wide && label != null) {
+            // Beside the Keyboard button, in its shape: icon and name in a row.
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Icon(Glyph.ViewPc, null, Modifier.size(22.dp), tint = c)
+                Text(label, style = KeypadType.Key.copy(fontSize = 17.sp, fontWeight = FontWeight.Bold), color = c)
+            }
+        } else Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Icon(Glyph.ViewPc, null, Modifier.size(20.dp), tint = c)
             if (label != null) Text(label, style = KeypadType.MacroCaption.copy(fontSize = KeypadType.Mono.fontSize, fontWeight = KeypadType.Overline.fontWeight), color = if (network) KeypadColors.OnAccent else KeypadColors.Text)
         }
     }
+    val shape = if (wide) RoundedCornerShape(18.dp) else KeypadShapes.Dock
     if (network) {
-        Pressable(onClick, modifier, shape = KeypadShapes.Dock, background = KeypadColors.Accent, border = KeypadColors.Accent, raised = false,
+        Pressable(onClick, modifier, shape = shape, background = KeypadColors.Accent, border = KeypadColors.Accent, raised = false,
             description = tr("Ver PC", "View PC"), content = content)
     } else {
         Pressable(onClick, modifier.dashedBorder(KeypadColors.Line2, 17.dp), shape = KeypadShapes.Dock, background = Color.Transparent, border = null,

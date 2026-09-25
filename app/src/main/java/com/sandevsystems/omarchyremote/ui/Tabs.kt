@@ -212,13 +212,13 @@ fun MonitorStrip(
     if (real.isEmpty()) return
     val names = monitorNames(real)
     val view = LocalView.current
-    Row(
-        Modifier.fillMaxWidth().height(100.dp).clip(CardShape).background(KeypadColors.Surface1)
+    Box(
+        Modifier.fillMaxWidth().height(116.dp).clip(CardShape).background(KeypadColors.Surface1)
             .clickable(onClickLabel = tr("Ver PC", "View PC")) { Haptic.tap(view); onOpen(cursor?.monitor) }
             .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        BoxWithConstraints(Modifier.weight(1f).fillMaxHeight()) {
+        // Each monitor opens itself: the thumbnails are the buttons.
+        BoxWithConstraints(Modifier.fillMaxSize().padding(end = if (more.isNotEmpty()) 40.dp else 0.dp)) {
             val order = real.sortedBy { it.x }
             val left = order.minOf { it.x }
             val top = order.minOf { it.y }
@@ -257,16 +257,12 @@ fun MonitorStrip(
                     color = if (here) KeypadColors.Text else KeypadColors.TextMute, maxLines = 1)
             }
         }
-        Column(Modifier.fillMaxHeight(), horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.SpaceBetween) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(tr("Ver PC", "View PC"), style = KeypadType.KeySmall.copy(fontWeight = FontWeight.Bold), color = KeypadColors.Text)
-                Icon(Glyph.ChevronRight, null, Modifier.size(18.dp), tint = KeypadColors.TextDim)
-            }
-            if (more.isNotEmpty()) {
+        if (more.isNotEmpty()) {
+            Column(Modifier.align(Alignment.TopEnd)) {
                 var open by remember { mutableStateOf(false) }
                 Box {
                     Box(
-                        Modifier.size(36.dp).clip(CircleShape).background(KeypadColors.Surface3)
+                        Modifier.size(32.dp).clip(CircleShape).background(KeypadColors.Surface3)
                             .clickable(onClickLabel = tr("Outras fontes", "Other sources")) { Haptic.tap(view); open = true },
                         contentAlignment = Alignment.Center,
                     ) { Icon(Glyph.More, tr("Outras fontes", "Other sources"), Modifier.size(18.dp), tint = KeypadColors.Text) }
@@ -320,8 +316,8 @@ fun ShortcutChips(shortcuts: List<Shortcut>, onShortcut: (Shortcut) -> Unit, onE
 
 /** The one big button of Controle: typing and keys live behind it. */
 @Composable
-fun KeyboardButton(onClick: () -> Unit) {
-    Pressable(onClick, Modifier.fillMaxWidth().height(56.dp), shape = RoundedCornerShape(18.dp), background = KeypadColors.Text, border = null,
+fun KeyboardButton(modifier: Modifier = Modifier.fillMaxWidth(), onClick: () -> Unit) {
+    Pressable(onClick, modifier.height(56.dp), shape = RoundedCornerShape(18.dp), background = KeypadColors.Text, border = null,
         raised = false, description = tr("Teclado", "Keyboard")) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Icon(Glyph.Keyboard, null, Modifier.size(22.dp), tint = KeypadColors.Bg)

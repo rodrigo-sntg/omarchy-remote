@@ -712,6 +712,16 @@ class KeypadViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    /** Omarchy's universal cut (Super+X), then the cut text here, like Copiar. */
+    fun cutOnPc() {
+        typeShortcut("x", ModifierKeys.SUPER)
+        if (transport != Transport.NETWORK || connection.value !is Connected) return
+        viewModelScope.launch {
+            delay(450)
+            network.clipboardGet()
+        }
+    }
+
     /** "Colar": the phone's copy to the PC's clipboard, then Omarchy's universal paste (Super+V). */
     fun pasteOnPc() {
         if (transport != Transport.NETWORK) return typeShortcut("v", ModifierKeys.SUPER)
@@ -1505,6 +1515,16 @@ class KeypadViewModel(application: Application) : AndroidViewModel(application) 
         val stroke = HardwareKeys.stroke(keyCode, metaState) ?: return false
         pressShortcut(stroke)
         return true
+    }
+
+    /** A shortcut chip: copy, paste and cut through Omarchy's universal clipboard over the network. */
+    fun runShortcut(shortcut: com.sandevsystems.omarchyremote.input.Shortcut) {
+        when (com.sandevsystems.omarchyremote.input.Shortcuts.clipboardAction(shortcut.id, transport == Transport.NETWORK)) {
+            "copy" -> copyOnPc()
+            "paste" -> pasteOnPc()
+            "cut" -> cutOnPc()
+            else -> pressShortcut(shortcut.key)
+        }
     }
 
     fun pressShortcut(key: KeyStroke) {

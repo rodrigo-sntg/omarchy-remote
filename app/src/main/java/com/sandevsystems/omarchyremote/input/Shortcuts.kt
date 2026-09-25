@@ -51,6 +51,13 @@ object Shortcuts {
 
     fun byId(id: String): Shortcut = all.getValue(id)
 
+    /**
+     * Copy, paste and cut over the network go through Omarchy's universal clipboard (Super+C/V/X:
+     * terminals too, and the copy comes to the phone); null for any other key, or over Bluetooth,
+     * where the PC may not be Omarchy.
+     */
+    fun clipboardAction(id: String, network: Boolean): String? = id.takeIf { network && it in setOf("copy", "paste", "cut") }
+
     val defaultSlots = listOf("copy", "paste", "undo", "close_tab", "esc")
 
     /** Saved slots ("a,b,c,d,e"); an unknown or missing id falls back to that slot's default. */
