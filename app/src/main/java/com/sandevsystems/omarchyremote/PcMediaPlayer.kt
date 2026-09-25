@@ -102,7 +102,7 @@ class PcMediaPlayer(private val app: KeypadApp) {
             PendingIntent.getBroadcast(app, code, Intent(app, Buttons::class.java).putExtra("action", what), PendingIntent.FLAG_IMMUTABLE),
         ).build()
         val open = app.packageManager.getLaunchIntentForPackage(app.packageName)?.let { PendingIntent.getActivity(app, 20, it, PendingIntent.FLAG_IMMUTABLE) }
-        val n = Notification.Builder(app, CHANNEL).setSmallIcon(R.drawable.ic_keypad)
+        val n = Notification.Builder(app, CHANNEL).setSmallIcon(R.drawable.ic_stat_remote)
             .setLargeIcon(cover(media)).setContentTitle(media.title).setContentText(media.artist.ifBlank { media.where() }).setSubText(media.where())
             .setContentIntent(open).setVisibility(Notification.VISIBILITY_PUBLIC).setOngoing(media.playing)
             .addAction(action(android.R.drawable.ic_media_previous, tr("Anterior", "Previous"), "previous", 21))

@@ -45,8 +45,17 @@ class ControlsLayoutTest {
     @Test
     fun theDefaultsAreTheThumbLayout() {
         val d = ControlsLayout.DEFAULT
-        assertEquals(setOf(Tool.RIGHT, Tool.HOLD, Tool.LOUPE), d.tools)
+        assertEquals(setOf(Tool.RIGHT, Tool.HOLD, Tool.LOUPE, Tool.COPY, Tool.PASTE), d.tools)
         assertTrue(d.toolsAt.first > 0.9f && d.toolsAt.second > 0.6f)  // right thumb
         assertTrue(d.typeAt.first < 0.1f && d.typeAt.second > 0.8f)    // left thumb
+    }
+
+    @Test
+    fun aLayoutSavedBeforeCopyAndPasteGetsThemOnce() {
+        val old = "RIGHT,LOUPE|MEDIUM|FADE|0.9:0.7|0.05:0.88"
+        assertEquals(setOf(Tool.RIGHT, Tool.LOUPE, Tool.COPY, Tool.PASTE), ControlsLayout.decode(old).tools)
+        // Taken out afterwards, they stay out.
+        val chosen = ControlsLayout.decode(old).copy(tools = setOf(Tool.RIGHT))
+        assertEquals(setOf(Tool.RIGHT), ControlsLayout.decode(chosen.encode()).tools)
     }
 }

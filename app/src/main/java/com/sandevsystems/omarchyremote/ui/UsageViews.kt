@@ -106,12 +106,15 @@ fun UsageSheet(vm: KeypadViewModel, onDismiss: () -> Unit) {
 
 @Composable
 private fun ProviderCard(p: UsageProvider, now: Instant) {
+    val mark = accountColor(p.account)
     Column(
-        Modifier.fillMaxWidth().clip(KeypadShapes.Card).background(KeypadColors.Surface2).border(1.dp, KeypadColors.Line, KeypadShapes.Card).padding(16.dp),
+        Modifier.fillMaxWidth().clip(KeypadShapes.Card).background(KeypadColors.Surface2).border(1.dp, KeypadColors.Line, KeypadShapes.Card)
+            .then(if (mark != null) Modifier.accountBar(mark) else Modifier).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(p.name, style = KeypadType.SheetTitle.copy(fontSize = KeypadType.HostName.fontSize * 1.1f), color = KeypadColors.Text)
+            if (mark != null) Text(p.account, style = KeypadType.Caption.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold), color = mark)
             if (p.plan.isNotBlank()) Text(p.plan, style = KeypadType.Caption, color = KeypadColors.TextMute)
             Spacer(Modifier.weight(1f))
             if (p.stale) Text(tr("desatualizado", "outdated"), style = KeypadType.Mono, color = KeypadColors.Warn)

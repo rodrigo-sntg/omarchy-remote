@@ -93,6 +93,11 @@ import com.sandevsystems.omarchyremote.network.AgentConversation.You
 import com.sandevsystems.omarchyremote.network.AgentScreen
 import com.sandevsystems.omarchyremote.network.AgentsText
 import com.sandevsystems.omarchyremote.network.ChatBlock
+import com.sandevsystems.omarchyremote.network.RecentSession
+import com.sandevsystems.omarchyremote.network.RecentSessions
+import com.sandevsystems.omarchyremote.network.WorkingTime
+import com.sandevsystems.omarchyremote.network.ImageRefs
+import com.sandevsystems.omarchyremote.network.SeenAgents
 import com.sandevsystems.omarchyremote.network.ChatItem
 import com.sandevsystems.omarchyremote.network.ChatState
 import com.sandevsystems.omarchyremote.network.SlashCommand
@@ -121,12 +126,18 @@ fun AgentsTab(vm: KeypadViewModel, selected: String?, onSelect: (String?) -> Uni
     val available by vm.herdrAvailable.collectAsStateWithLifecycle()
     var usageOpen by rememberSaveable { mutableStateOf(false) }
     var newOpen by rememberSaveable { mutableStateOf(false) }
+    var sessionsOpen by rememberSaveable { mutableStateOf(false) }
+    val sessions by vm.sessions.collectAsStateWithLifecycle()
     val (usage, now) = rememberUsage(vm)
+    // The sessions again whenever an agent comes or goes: a tab closed on the PC shows up to reopen.
+    val ids = agents.map { it.id }.toSet()
+    LaunchedEffect(ids, available) { if (available) vm.loadSessions() }
     // An agent started from here opens as soon as it is ready.
     LaunchedEffect(vm.startedAgent) {
-        vm.startedAgent?.let { newOpen = false; vm.startedAgent = null; onSelect(it) }
+        vm.startedAgent?.let { newOpen = false; sessionsOpen = false; vm.startedAgent = null; onSelect(it) }
     }
     if (newOpen) NewAgentSheet(vm) { newOpen = false }
+    if (sessionsOpen) SessionsSheet(vm, sessions) { sessionsOpen = false }
     val agent = agents.firstOrNull { it.id == selected }
     if (agent != null) {
         BackHandler { onSelect(null) }
@@ -147,10 +158,11 @@ fun AgentsTab(vm: KeypadViewModel, selected: String?, onSelect: (String?) -> Uni
             delay(3_500)
         }
     }
-    val waiting = agents.filter { it.status == "blocked" || it.status == "done" }
+    val ordered = AgentsText.byActivity(agents)
+    val waiting = ordered.filter(AgentsText::needsYou)
     // An agent waiting on its subagents is working too.
-    val working = agents.filter { it.status == "working" || (it.subagents > 0 && it.status != "blocked" && it.status != "done") }
-    val idle = agents.filter { it !in waiting && it !in working }
+    val working = ordered.filter { it.status == "working" || (it.subagents > 0 && it.status != "blocked" && it.status != "done") }
+    val idle = ordered.filter { it !in waiting && it !in working }
     Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         val subtitle = buildAnnotatedString {
             when {
@@ -187,7 +199,7 @@ fun AgentsTab(vm: KeypadViewModel, selected: String?, onSelect: (String?) -> Uni
                 working.forEachIndexed { i, a ->
                     if (i > 0) GroupDivider()
                     val subs = if (a.subagents > 0) subagentCount(a.subagents) + " · " else ""
-                    GroupRow(agentTitle(a), subs + activity(vm.agentTexts[a.id], a), { onSelect(a.id) }, trailing = { Spinner() })
+                    GroupRow(agentTitle(a), subs + activity(vm.agentTexts[a.id], a), { onSelect(a.id) }, trailing = { Spinner() }, account = a.account)
                 }
             }
         }
@@ -196,16 +208,103 @@ fun AgentsTab(vm: KeypadViewModel, selected: String?, onSelect: (String?) -> Uni
             Group {
                 idle.forEachIndexed { i, a ->
                     if (i > 0) GroupDivider()
-                    val spent = usage?.let { exhausted(it, a.kind) } == true
-                    GroupRow(agentTitle(a), origin(a), { onSelect(a.id) }, minHeight = 56.dp, trailing = if (spent) {
+                    val spent = usage?.let { exhausted(it, a.kind, a.account) } == true
+                    GroupRow(agentTitle(a), origin(a), { onSelect(a.id) }, minHeight = 56.dp, account = a.account, trailing = if (spent) {
                         { Text(tr("Sem limite", "Out of limit"), style = GroupType.Sub, color = KeypadColors.Danger) }
                     } else null)
+                }
+            }
+        }
+        val closed = RecentSessions.closed(sessions)
+        if (available && sessions.isNotEmpty()) {
+            SectionLabel(tr("Fechadas recentemente", "Recently closed"), action = tr("Ver todas", "See all"), onAction = { sessionsOpen = true })
+            if (closed.isNotEmpty()) Group {
+                closed.forEachIndexed { i, s ->
+                    if (i > 0) GroupDivider()
+                    SessionRow(s, vm.startingAgent) { vm.resumeSession(s) }
                 }
             }
         }
         Spacer(Modifier.height(12.dp))
     }
     if (usageOpen) UsageSheet(vm) { usageOpen = false }
+}
+
+/**
+ * The agent's status under the chat. While it works: three dots breathing in the theme's accent
+ * (a slow wave, not a blink) and the clock counting each second between reads of the PC's screen.
+ * Otherwise the plain line.
+ */
+@Composable
+internal fun AgentStatusLine(status: String, modifier: Modifier = Modifier) {
+    if (!WorkingTime.isWorking(status)) {
+        Text(status, modifier, style = GroupType.Small, color = KeypadColors.TextMute)
+        return
+    }
+    // The clock restarts from the PC's own number each time a new one arrives.
+    var elapsed by remember(status) { mutableStateOf(0L) }
+    LaunchedEffect(status) {
+        while (true) {
+            delay(1_000)
+            elapsed++
+        }
+    }
+    val wave = rememberInfiniteTransition(label = "working")
+    val phase by wave.animateFloat(0f, 1f, infiniteRepeatable(tween(1400, easing = LinearEasing), RepeatMode.Restart), label = "phase")
+    val accent = KeypadColors.Accent
+    Row(modifier.semantics(mergeDescendants = true) {}, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Canvas(Modifier.size(width = 22.dp, height = 10.dp)) {
+            val r = 2.2.dp.toPx()
+            for (i in 0..2) {
+                // Each dot rises and brightens a third of a turn after the one before it.
+                val t = ((phase - i / 3f) % 1f + 1f) % 1f
+                val lift = kotlin.math.sin(t * Math.PI).toFloat().coerceAtLeast(0f)
+                drawCircle(
+                    accent.copy(alpha = 0.35f + 0.65f * lift), r,
+                    Offset(r + i * (size.width - 2 * r) / 2, size.height / 2 - lift * 2.dp.toPx()),
+                )
+            }
+        }
+        Text(WorkingTime.tick(status, elapsed), style = GroupType.Small, color = KeypadColors.TextDim)
+    }
+}
+
+/** A session to pick up: its title, then who, where and when; "Reabrir" (or "Aberta" while it runs). */
+@Composable
+private fun SessionRow(s: RecentSession, busy: Boolean, onOpen: () -> Unit) {
+    val now = remember { System.currentTimeMillis() / 1000 }
+    val where = listOf(AgentsText.kindName(s.kind), s.project, ago((now - s.updated).toInt().coerceAtLeast(0)))
+        .filter { it.isNotBlank() }.joinToString(" · ")
+    GroupRow(s.title, where, onOpen, minHeight = 60.dp, account = s.account, trailing = {
+        if (s.pane != null) Text(tr("Aberta", "Open"), style = GroupType.Sub, color = KeypadColors.Ok)
+        else Text(if (busy) tr("Abrindo…", "Opening…") else tr("Reabrir", "Reopen"), style = GroupType.Sub.copy(fontWeight = FontWeight.SemiBold), color = KeypadColors.Text)
+    })
+}
+
+/** Every recent session, searchable: open ones go to their chat, closed ones reopen on the PC. */
+@Composable
+private fun SessionsSheet(vm: KeypadViewModel, sessions: List<RecentSession>, onDismiss: () -> Unit) {
+    var query by rememberSaveable { mutableStateOf("") }
+    LaunchedEffect(vm.startedAgent) { if (vm.startedAgent != null) onDismiss() }
+    AppSheet(tr("Sessões recentes", "Recent sessions"), onDismiss, subtitle = tr("Do Claude e do Codex neste PC", "Claude's and Codex's on this PC"), tall = true) {
+        Row(
+            Modifier.fillMaxWidth().height(48.dp).clip(RoundedCornerShape(14.dp)).background(KeypadColors.Surface1).padding(horizontal = 14.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Icon(Glyph.Search, null, Modifier.size(18.dp), tint = KeypadColors.TextDim)
+            BasicTextField(query, { query = it.take(80) }, Modifier.weight(1f).semantics { contentDescription = tr("Buscar sessão", "Search sessions") },
+                textStyle = GroupType.Lead.copy(color = KeypadColors.Text), cursorBrush = SolidColor(KeypadColors.Text), singleLine = true,
+                decorationBox = { field -> if (query.isEmpty()) Text(tr("Título, projeto ou conta", "Title, project or account"), style = GroupType.Lead, color = KeypadColors.TextMute); field() })
+        }
+        val shown = RecentSessions.search(sessions, query)
+        if (shown.isEmpty()) Text(tr("Nenhuma sessão.", "No sessions."), style = GroupType.Lead, color = KeypadColors.TextDim)
+        Group {
+            shown.forEachIndexed { i, s ->
+                if (i > 0) GroupDivider()
+                SessionRow(s, vm.startingAgent) { vm.resumeSession(s) }
+            }
+        }
+    }
 }
 
 /**
@@ -292,8 +391,8 @@ internal fun agentTitle(a: Agent) = a.title.ifBlank { AgentsText.kindName(a.kind
 internal fun origin(a: Agent) = listOf(AgentsText.kindName(a.kind), a.cwd.trimEnd('/').substringAfterLast('/')).filter { it.isNotBlank() }.joinToString(" · ")
 
 /** The plan behind this kind of agent has a limit at 100%: it cannot go on. */
-private fun exhausted(usage: UsageState, kind: String) =
-    usage.providers.any { p -> p.name.lowercase().startsWith(kind.lowercase()) && p.metrics.any { it.kind != "model" && it.percent >= 100 } }
+private fun exhausted(usage: UsageState, kind: String, account: String) =
+    usage.providers.any { p -> p.name.lowercase().startsWith(kind.lowercase()) && p.account == account && p.metrics.any { it.kind != "model" && it.percent >= 100 } }
 
 /** What a running agent is doing: its last action, or how long it has been working. */
 private fun activity(raw: String?, a: Agent): String {
@@ -314,12 +413,17 @@ private fun activity(raw: String?, a: Agent): String {
 private fun LimitCards(state: UsageState?, now: Instant, onOpen: () -> Unit) {
     val s = state ?: return
     if (!s.available || s.providers.isEmpty()) return
-    SectionLabel(tr("Limites", "Limits"), action = tr("Detalhes", "Details"), onAction = onOpen)
-    for (row in s.providers.chunked(2)) {
+    // Here only the person's own plans; other accounts' are in Detalhes (the link says how many).
+    val own = s.providers.filter { it.account.isBlank() }.ifEmpty { s.providers }
+    val others = s.providers.size - own.size
+    val details = if (others == 0) tr("Detalhes", "Details")
+        else tr("Detalhes · +$others ${if (others == 1) "conta" else "contas"}", "Details · +$others ${if (others == 1) "account" else "accounts"}")
+    SectionLabel(tr("Limites", "Limits"), action = details, onAction = onOpen)
+    for (row in own.chunked(2)) {
         // Side by side, the same height (a longer line in one card must not make it taller alone).
         Row(Modifier.height(androidx.compose.foundation.layout.IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             for (p in row) LimitCard(p, now, onOpen, Modifier.weight(1f).fillMaxHeight())
-            if (row.size == 1 && s.providers.size > 1) Spacer(Modifier.weight(1f))
+            if (row.size == 1 && own.size > 1) Spacer(Modifier.weight(1f))
         }
     }
 }
@@ -334,13 +438,15 @@ private fun limitColor(percent: Int) = when {
 private fun LimitCard(p: UsageProvider, now: Instant, onOpen: () -> Unit, modifier: Modifier) {
     val view = LocalView.current
     val metrics = p.metrics.filter { it.kind != "model" }.take(2)
+    val mark = accountColor(p.account)
     Column(
         modifier.clip(GroupShape).background(KeypadColors.Surface1).clickable(onClickLabel = tr("Uso das IAs", "AI usage")) { Haptic.tap(view); onOpen() }
-            .padding(14.dp),
+            .then(if (mark != null) Modifier.accountBar(mark) else Modifier).padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(p.name, style = GroupType.Lead.copy(fontWeight = FontWeight.SemiBold), color = KeypadColors.Text, maxLines = 1)
+            if (mark != null) Text(p.account, style = GroupType.Sub.copy(fontWeight = FontWeight.SemiBold), color = mark, maxLines = 1)
             if (p.plan.isNotBlank()) Text(p.plan, style = GroupType.Sub, color = KeypadColors.TextDim, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         for (m in metrics) {
@@ -375,15 +481,20 @@ private fun NeedsYouCard(vm: KeypadViewModel, agent: Agent, onOpen: () -> Unit) 
     val raw = vm.agentTexts[agent.id]
     val chat = remember(raw, I18n.lang) { raw?.let { AgentConversation.parse(it) } }
     val blocked = agent.status == "blocked"
+    val mark = accountColor(agent.account)
     Column(
         Modifier.fillMaxWidth().clip(GroupShape).background(KeypadColors.Surface1)
-            .clickable(onClickLabel = tr("Abrir agente", "Open agent")) { Haptic.tap(view); onOpen() }.padding(16.dp),
+            .clickable(onClickLabel = tr("Abrir agente", "Open agent")) { Haptic.tap(view); onOpen() }
+            .then(if (mark != null) Modifier.accountBar(mark) else Modifier).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(agentTitle(agent), style = GroupType.Title.copy(fontWeight = FontWeight.SemiBold), color = KeypadColors.Text, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(origin(agent) + " · " + (if (blocked) tr("pede permissão", "asks permission") else tr("terminou", "finished")) +
-                (if (agent.subagents > 0) " · " + subagentCount(agent.subagents) else ""),
+            Text(buildAnnotatedString {
+                if (mark != null) withStyle(SpanStyle(color = mark, fontWeight = FontWeight.SemiBold)) { append(agent.account.trim() + " · ") }
+                append(origin(agent) + " · " + (if (blocked) tr("pede permissão", "asks permission") else tr("terminou", "finished")) +
+                    (if (agent.subagents > 0) " · " + subagentCount(agent.subagents) else ""))
+            },
                 style = GroupType.Sub, color = KeypadColors.TextDim, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         if (blocked) {
@@ -576,6 +687,8 @@ private fun summarize(actions: List<Did>): String {
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun AgentDetail(vm: KeypadViewModel, agent: Agent, usage: UsageState?, onBack: () -> Unit, onTerminal: () -> Unit, modifier: Modifier) {
+    // Opened here, a finished agent's answer is read: it leaves "Precisa de você" (until it finishes again).
+    LaunchedEffect(agent.id, agent.seq, agent.status) { SeenAgents.saw(agent) }
     val text by vm.agentText.collectAsStateWithLifecycle()
     val raw = text?.takeIf { it.first == agent.id }?.second
     val chat = remember(raw, I18n.lang) { raw?.let { AgentConversation.parse(it) } }
@@ -626,6 +739,8 @@ private fun AgentDetail(vm: KeypadViewModel, agent: Agent, usage: UsageState?, o
                         tr("Terminou ", "Finished ") + ago((System.currentTimeMillis() / 1000 - lastSaid.ts).toInt())
                     else statusWord(agent.status).replaceFirstChar { it.uppercase() }
                     val project = agent.cwd.trimEnd('/').substringAfterLast('/')
+                    val mark = accountColor(agent.account)
+                    if (mark != null) Text(agent.account.trim(), style = GroupType.Small.copy(fontWeight = FontWeight.SemiBold), color = mark, maxLines = 1)
                     Text(listOf(state, project).filter { it.isNotBlank() }.joinToString(" · "), style = GroupType.Small,
                         color = if (blocked) KeypadColors.Attention else KeypadColors.TextDim, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
@@ -656,7 +771,7 @@ private fun AgentDetail(vm: KeypadViewModel, agent: Agent, usage: UsageState?, o
         // What is happening right now comes from the screen: a request to answer, the plan's limit.
         val live: @Composable () -> Unit = {
             if (ask != null) AskCard(ask) { key -> vm.agentKeys(agent.id, listOf(key)) }
-            if (usage != null && exhausted(usage, agent.kind)) {
+            if (usage != null && exhausted(usage, agent.kind, agent.account)) {
                 Text(tr("O plano do ${AgentsText.kindName(agent.kind)} está sem limite agora.", "${AgentsText.kindName(agent.kind)}'s plan is out of limit right now."),
                     style = GroupType.Sub, color = KeypadColors.Danger)
             }
@@ -685,7 +800,7 @@ private fun AgentDetail(vm: KeypadViewModel, agent: Agent, usage: UsageState?, o
                         Text(screen?.body?.ifBlank { null } ?: " ",
                             Modifier.fillMaxWidth().clip(GroupShape).background(KeypadColors.Surface1).padding(16.dp),
                             style = KeypadType.Mono.copy(fontSize = 13.sp, lineHeight = 20.sp), color = KeypadColors.Text)
-                        screen?.footer?.let { Text(it, Modifier.padding(start = 16.dp), style = GroupType.Small, color = KeypadColors.TextMute) }
+                        screen?.footer?.let { AgentStatusLine(it, Modifier.padding(start = 16.dp)) }
                     }
                 }
                 live()
@@ -754,7 +869,7 @@ private fun AgentDetail(vm: KeypadViewModel, agent: Agent, usage: UsageState?, o
                 BasicTextField(
                     field, { field = if (it.text.length <= 3000) it else it.copy(text = it.text.take(3000)) },
                     Modifier.weight(1f).focusRequester(focus).semantics { contentDescription = tr("Mensagem para o $kind", "Message to $kind") },
-                    enabled = canWrite, maxLines = 5,
+                    enabled = canWrite, maxLines = 10,
                     textStyle = GroupType.Title.copy(color = KeypadColors.Text),
                     cursorBrush = SolidColor(KeypadColors.Text),
                     decorationBox = { field ->
@@ -835,7 +950,7 @@ private fun Conversation(chat: AgentConversation.Chat) {
             is MutableList<*> -> @Suppress("UNCHECKED_CAST") ActionChip(b as List<Did>)
         }
     }
-    chat.footer?.let { Text(it, style = GroupType.Small, color = KeypadColors.TextMute) }
+    chat.footer?.let { AgentStatusLine(it) }
 }
 
 /**
@@ -866,7 +981,7 @@ private fun Transcript(c: ChatState, vm: KeypadViewModel, status: String?, live:
     LazyColumn(modifier, state = list, reverseLayout = true, verticalArrangement = Arrangement.spacedBy(14.dp), contentPadding = PaddingValues(vertical = 8.dp)) {
         item(key = "live") {
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                status?.let { Text(it, style = GroupType.Small, color = KeypadColors.TextMute) }
+                status?.let { AgentStatusLine(it) }
                 live()
             }
         }
@@ -882,10 +997,18 @@ private fun Transcript(c: ChatState, vm: KeypadViewModel, status: String?, live:
             when (b) {
                 is ChatBlock.Message -> when (val item = b.item) {
                     is ChatItem.You -> Bubble(item.text)
-                    is ChatItem.Said -> MarkdownText(item.text, onRun = onRun)
+                    is ChatItem.Said -> Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        MarkdownText(item.text, onRun = onRun)
+                        // Images it names (a logo it drew, a file it made): right there, a tap opens them.
+                        AgentImages(vm, c.id, remember(item.text) { ImageRefs.inText(item.text) })
+                    }
                     else -> {}
                 }
-                is ChatBlock.Actions -> ActionSteps(b.steps, c.outputs) { call, at -> vm.chatOutput(call, at) }
+                is ChatBlock.Actions -> Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    ActionSteps(b.steps, c.outputs) { call, at -> vm.chatOutput(call, at) }
+                    // An image it read or wrote (it looked at a screenshot, drew an SVG).
+                    AgentImages(vm, c.id, remember(b.steps) { b.steps.mapNotNull { st -> st.tool?.let { ImageRefs.ofTool(it.name, it.target) } }.distinct().take(6) })
+                }
             }
             }
         }
@@ -996,7 +1119,7 @@ private fun Bubble(text: String) {
 private fun ActionSteps(steps: List<ChatBlock.Step>, outputs: Map<String, String>, onFull: (String, Long) -> Unit) {
     var all by rememberSaveable { mutableStateOf(false) }
     val view = LocalView.current
-    val hidden = if (all || steps.size <= 4) 0 else steps.size - 3
+    val hidden = if (all || steps.size <= 8) 0 else steps.size - 6
     Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(KeypadColors.Surface1)) {
         if (hidden > 0) {
             Row(
@@ -1052,8 +1175,13 @@ private fun StepRow(step: ChatBlock.Step, outputs: Map<String, String>, onFull: 
                 out.err -> Icon(Glyph.Close, tr("falhou", "failed"), Modifier.size(14.dp), tint = KeypadColors.Danger)
                 else -> Icon(Glyph.Check, null, Modifier.size(14.dp), tint = KeypadColors.TextMute)
             }
-            Text(tool?.let { stepLabel(it) } ?: tr("resultado", "result"), Modifier.weight(1f), style = KeypadType.Mono.copy(fontSize = 12.sp, lineHeight = 17.sp),
-                color = KeypadColors.Text, maxLines = if (open) 6 else 1, overflow = TextOverflow.Ellipsis)
+            // What the step was for, in words (the agent's own description), over the command itself.
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                val why = tool?.why?.takeIf { it.isNotBlank() }
+                if (why != null) Text(why, style = GroupType.Sub, color = KeypadColors.Text, maxLines = if (open) Int.MAX_VALUE else 2, overflow = TextOverflow.Ellipsis)
+                Text(tool?.let { stepLabel(it) } ?: tr("resultado", "result"), style = KeypadType.Mono.copy(fontSize = 12.sp, lineHeight = 17.sp),
+                    color = if (why != null) KeypadColors.TextDim else KeypadColors.Text, maxLines = if (open) 12 else if (why != null) 1 else 2, overflow = TextOverflow.Ellipsis)
+            }
             if (diff != null) {
                 Text("+${diff.first}", style = KeypadType.Mono.copy(fontSize = 11.sp), color = KeypadColors.Ok)
                 if (diff.second > 0) Text("−${diff.second}", style = KeypadType.Mono.copy(fontSize = 11.sp), color = KeypadColors.Danger)
@@ -1062,7 +1190,6 @@ private fun StepRow(step: ChatBlock.Step, outputs: Map<String, String>, onFull: 
         }
         if (open) {
             Column(Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                tool?.why?.let { Text(it, style = GroupType.Small, color = KeypadColors.TextDim) }
                 if (tool != null && tool.name in shells && tool.target.contains('\n')) CodeBox(tool.target, tr("comando", "command"))
                 when {
                     tool?.patch != null -> DiffBox(tool.patch.lines().map { l -> l.firstOrNull()?.takeIf { it == '+' || it == '-' } to l })
@@ -1117,7 +1244,7 @@ private fun ActionChip(actions: List<Did>) {
         }
         if (open) {
             Column(Modifier.padding(start = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                for (d in actions) Text(describe(d), style = KeypadType.Mono.copy(fontSize = 12.sp, lineHeight = 17.sp), color = KeypadColors.TextDim, maxLines = 3, overflow = TextOverflow.Ellipsis)
+                for (d in actions) Text(describe(d), style = KeypadType.Mono.copy(fontSize = 12.sp, lineHeight = 17.sp), color = KeypadColors.TextDim, maxLines = 8, overflow = TextOverflow.Ellipsis)
             }
         }
     }
@@ -1136,7 +1263,7 @@ private fun AskCard(ask: AgentConversation.Ask, onKey: (String) -> Unit) {
                 verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 if (ask.title.isNotBlank()) Text(askTitle(ask.title), style = GroupType.Small, color = KeypadColors.TextDim)
                 if (ask.detail.isNotBlank()) {
-                    Text(ask.detail.lines().take(8).joinToString("\n"), style = KeypadType.Mono.copy(fontSize = 14.sp, lineHeight = 20.sp), color = KeypadColors.Text)
+                    Text(ask.detail.lines().take(40).joinToString("\n"), style = KeypadType.Mono.copy(fontSize = 14.sp, lineHeight = 20.sp), color = KeypadColors.Text)
                 }
             }
         }
@@ -1194,7 +1321,7 @@ private fun Subagents(vm: KeypadViewModel, agent: Agent) {
                             else -> tr("parou ${ago(s.quiet)}", "stopped ${ago(s.quiet)}")
                         }
                         Text(listOf(s.type, state).filter { it.isNotBlank() }.joinToString(" · "), style = GroupType.Small, color = KeypadColors.TextDim)
-                        if (s.said.isNotBlank()) Text(s.said, style = GroupType.Sub, color = KeypadColors.TextDim, maxLines = 3, overflow = TextOverflow.Ellipsis)
+                        if (s.said.isNotBlank()) Text(s.said, style = GroupType.Sub, color = KeypadColors.TextDim, maxLines = 12, overflow = TextOverflow.Ellipsis)
                     }
                 }
             }

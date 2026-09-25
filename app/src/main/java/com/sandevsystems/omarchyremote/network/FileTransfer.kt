@@ -248,7 +248,7 @@ class FileTransfer(private val context: Context, private val scope: CoroutineSco
 
     private fun progress(id: Int, title: String, name: String, done: Long, total: Long?) {
         channel()
-        val builder = NotificationCompat.Builder(context, CHANNEL).setSmallIcon(R.drawable.ic_keypad)
+        val builder = NotificationCompat.Builder(context, CHANNEL).setSmallIcon(R.drawable.ic_stat_remote)
             .setContentTitle(title).setContentText(name).setOngoing(true).setOnlyAlertOnce(true)
             .setSilent(true)
         if (total != null && total > 0) builder.setProgress(1000, (done * 1000 / total).toInt(), false)
@@ -258,7 +258,7 @@ class FileTransfer(private val context: Context, private val scope: CoroutineSco
 
     private fun done(id: Int, title: String, text: String, open: Uri? = null, mime: String? = null, share: Boolean = false) {
         channel()
-        val builder = NotificationCompat.Builder(context, CHANNEL).setSmallIcon(R.drawable.ic_keypad)
+        val builder = NotificationCompat.Builder(context, CHANNEL).setSmallIcon(R.drawable.ic_stat_remote)
             .setContentTitle(title).setContentText(text).setAutoCancel(true)
         if (open != null) {
             val view = Intent(Intent.ACTION_VIEW).setDataAndType(open, mime)

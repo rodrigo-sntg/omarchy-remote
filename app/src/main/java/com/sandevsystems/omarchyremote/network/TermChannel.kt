@@ -23,7 +23,8 @@ class TermChannel(
     pairingCode: String,
     private val cols: Int,
     private val rows: Int,
-    private val onOpen: () -> Unit,
+    /** With the herdr shortcuts the PC can send (TermActions); empty from an older PC. */
+    private val onOpen: (Set<String>) -> Unit,
     private val onBytes: (ByteArray) -> Unit,
     private val onClosed: (String) -> Unit,
 ) {
@@ -42,7 +43,11 @@ class TermChannel(
             override fun onMessage(webSocket: WebSocket, text: String) {
                 val message = JSONObject(text)
                 when (message.optString("type")) {
-                    "term" -> main.post { if (!closed) onOpen() }
+                    "term" -> {
+                        val list = message.optJSONArray("actions")
+                        val actions = (0 until (list?.length() ?: 0)).map { list!!.optString(it) }.toSet()
+                        main.post { if (!closed) onOpen(actions) }
+                    }
                     "error" -> finish(message.optString("message", tr("O PC recusou o terminal.", "The PC refused the terminal.")))
                 }
             }
@@ -66,6 +71,11 @@ class TermChannel(
 
     fun send(data: ByteArray) {
         if (!closed) socket.send(data.toByteString())
+    }
+
+    /** One of herdr's shortcuts by name; the PC types the person's own keys for it. */
+    fun action(name: String) {
+        if (!closed) socket.send(JSONObject().put("type", "term.action").put("action", name).toString())
     }
 
     fun resize(cols: Int, rows: Int) {

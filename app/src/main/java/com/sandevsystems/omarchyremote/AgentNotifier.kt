@@ -47,7 +47,7 @@ class AgentNotifier(private val context: Context) {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
         val builder = NotificationCompat.Builder(context, CHANNEL)
-            .setSmallIcon(R.drawable.ic_keypad)
+            .setSmallIcon(R.drawable.ic_stat_remote)
             .setContentTitle(notice.title)
             .setContentText(notice.body)
             .setStyle(NotificationCompat.BigTextStyle().bigText(notice.body))
@@ -57,7 +57,7 @@ class AgentNotifier(private val context: Context) {
             .setContentIntent(open)
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
             .setPublicVersion(
-                NotificationCompat.Builder(context, CHANNEL).setSmallIcon(R.drawable.ic_keypad)
+                NotificationCompat.Builder(context, CHANNEL).setSmallIcon(R.drawable.ic_stat_remote)
                     .setContentTitle(tr("Um agente precisa de você", "An agent needs you")).build(),
             )
         notice.allow?.let { builder.addAction(locked(tr("Permitir", "Allow"), keysIntent(agent.id, it, tr("Permitido", "Allowed")))) }
@@ -86,7 +86,7 @@ class AgentNotifier(private val context: Context) {
     /** The answer went (or did not): the agent's notification says so, quietly, and goes away. */
     fun answered(id: String, text: String) {
         manager.notify(id.hashCode(), NotificationCompat.Builder(context, CHANNEL)
-            .setSmallIcon(R.drawable.ic_keypad).setContentTitle(text).setSilent(true).setAutoCancel(true)
+            .setSmallIcon(R.drawable.ic_stat_remote).setContentTitle(text).setSilent(true).setAutoCancel(true)
             .setTimeoutAfter(4_000).build())
     }
 
@@ -111,7 +111,7 @@ class AgentNotifier(private val context: Context) {
         }
         val pending = PendingIntent.getActivity(context, what.hashCode(), intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
         manager.notify(OPEN_ID, NotificationCompat.Builder(context, CHANNEL)
-            .setSmallIcon(R.drawable.ic_keypad).setContentTitle(tr("Pedido do PC", "Request from the PC")).setContentText(label)
+            .setSmallIcon(R.drawable.ic_stat_remote).setContentTitle(tr("Pedido do PC", "Request from the PC")).setContentText(label)
             .setPriority(NotificationCompat.PRIORITY_HIGH).setAutoCancel(true).setContentIntent(pending).build())
     }
 
@@ -127,7 +127,7 @@ class AgentNotifier(private val context: Context) {
             .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NEW_TASK), PendingIntent.FLAG_IMMUTABLE)
         val title = n.title.ifBlank { n.app.ifBlank { "PC" } }
         manager.notify(PC_BASE + (pcCount++ % 50), NotificationCompat.Builder(context, PC_CHANNEL)
-            .setSmallIcon(R.drawable.ic_keypad).setContentTitle(title).setContentText(n.body)
+            .setSmallIcon(R.drawable.ic_stat_remote).setContentTitle(title).setContentText(n.body)
             .setStyle(NotificationCompat.BigTextStyle().bigText(n.body))
             .setSubText(n.app.takeIf { it.isNotBlank() && it != "omarchy-action" } ?: "PC")
             .setGroup(PC_CHANNEL).setAutoCancel(true).setContentIntent(open).build())

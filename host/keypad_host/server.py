@@ -29,6 +29,8 @@ from .files import shots_dir as default_shots_dir
 from .now import pc_command, media_command, read_now
 from .pen import PenDevice, parse_pen, pen_position
 from .omarchy_menu import MenuSource, desktop_apps, spawn_detached
+from .images import image_for, render
+from .herdr_keys import load as load_herdr_keys, sequences as herdr_sequences
 from .term import Pty, TermError, herdr_command, parse_term_ack, parse_term_resize, parse_term_start
 from .auth import is_allowed, machine_name, token_matches
 from .display import (
@@ -176,7 +178,7 @@ SLOW_TYPES = {"thumb.get", "stats.get", "host.get", "host.restart", "pc.open_url
 def create_app(
     injector, allowed: set[str], tailnet: str, token: str, whois,
     heartbeat_timeout: float | None = None, hyprland=None, capture=start_capture,
-    herdr=None, agent_poll: float = 2.0, term_command=herdr_command, term_window: int = TERM_WINDOW,
+    herdr=None, agent_poll: float = 2.0, term_command=herdr_command, term_window: int = TERM_WINDOW, term_keys=None,
     state_path=None, notify=None, theme_reader=None, events=None, clipboard=(set_clipboard, get_clipboard),
     notice_grace: float = 60.0, menu=None, apps=None, launch=None, pen=None, downloads=None,
     shoot=None, shots_dir=None, usage=None, transcripts_home=None, owner=None, devices=None, phone_notices_factory=None, unlocker=None,
@@ -357,6 +359,20 @@ def create_app(
         if path is None:
             raise web.HTTPNotFound(text="offer expired")
         return web.FileResponse(path, headers={"Content-Disposition": "attachment; filename*=UTF-8''" + urllib.parse.quote(path.name)})
+
+    async def agent_image(request: web.Request) -> web.Response:
+        """An image an agent named in its chat (images.py), for the phone to show inline."""
+        await authorize(request, need_session=True)
+        agent = request.query.get("agent", "")
+        if not AGENT_TARGET.fullmatch(agent):
+            raise web.HTTPBadRequest(text="invalid agent")
+        cwd = await herdr.cwd_of(agent) if herdr is not None else None
+        home = Path(transcripts_home) if transcripts_home else Path.home()
+        path = await asyncio.to_thread(image_for, request.query.get("path", ""), cwd, home)
+        drawn = await render(path) if path else None
+        if drawn is None:
+            raise web.HTTPNotFound(text="no such image")
+        return web.Response(body=drawn[0], content_type=drawn[1], headers={"Cache-Control": "private, max-age=60"})
 
     async def _run_slow(ws, queue):
         """Phone requests that wait on other programs, one at a time and in order."""
@@ -991,9 +1007,11 @@ def create_app(
             except OSError as error:
                 await ws.send_json({"type": "error", "message": f"Não foi possível abrir o terminal: {error.strerror}"})
                 return ws
+            # herdr's shortcuts as the person set them, read now so a config change applies next time.
+            actions = await asyncio.to_thread(term_keys) if term_keys else herdr_sequences(await asyncio.to_thread(load_herdr_keys))
+            await ws.send_json({"type": "term", "cols": cols, "rows": rows, "session": session_name, "actions": sorted(actions)})
             set_reading(True)
             pump = asyncio.create_task(forward())
-            await ws.send_json({"type": "term", "cols": cols, "rows": rows, "session": session_name})
             log.info("terminal %s as %dx%d", session_name, cols, rows)
             async for message in ws:
                 if message.type == WSMsgType.BINARY:
@@ -1005,6 +1023,11 @@ def create_app(
                             flow["unacked"] = max(0, flow["unacked"] - parse_term_ack(data))
                             if flow["unacked"] < term_window:
                                 set_reading(True)
+                        elif isinstance(data, dict) and data.get("type") == "term.action":
+                            # Only a name from the list: the bytes are the host's, never the phone's.
+                            name = data.get("action")
+                            if isinstance(name, str) and (keys := actions.get(name)) is not None:
+                                await pty.write(keys)
                         else:
                             pty.resize(*parse_term_resize(data))
                     except (TermError, ValueError):
@@ -1074,4 +1097,5 @@ def create_app(
     app.router.add_get("/v1/term", term)
     app.router.add_post("/v1/file", receive_file)
     app.router.add_get("/v1/file/{offer_id}", send_file)
+    app.router.add_get("/v1/agent-image", agent_image)
     return app

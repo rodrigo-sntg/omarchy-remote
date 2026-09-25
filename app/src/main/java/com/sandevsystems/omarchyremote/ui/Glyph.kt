@@ -1,6 +1,7 @@
 package com.sandevsystems.omarchyremote.ui
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathFillType
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
@@ -32,6 +33,7 @@ object Glyph {
     val Grid: ImageVector by lazy { stroke("Grid", "M4.5,3h4.0a1.5,1.5 0 0 1 1.5,1.5v4.0a1.5,1.5 0 0 1 -1.5,1.5h-4.0a1.5,1.5 0 0 1 -1.5,-1.5v-4.0a1.5,1.5 0 0 1 1.5,-1.5z", "M15.5,3h4.0a1.5,1.5 0 0 1 1.5,1.5v4.0a1.5,1.5 0 0 1 -1.5,1.5h-4.0a1.5,1.5 0 0 1 -1.5,-1.5v-4.0a1.5,1.5 0 0 1 1.5,-1.5z", "M4.5,14h4.0a1.5,1.5 0 0 1 1.5,1.5v4.0a1.5,1.5 0 0 1 -1.5,1.5h-4.0a1.5,1.5 0 0 1 -1.5,-1.5v-4.0a1.5,1.5 0 0 1 1.5,-1.5z", "M15.5,14h4.0a1.5,1.5 0 0 1 1.5,1.5v4.0a1.5,1.5 0 0 1 -1.5,1.5h-4.0a1.5,1.5 0 0 1 -1.5,-1.5v-4.0a1.5,1.5 0 0 1 1.5,-1.5z") }
     val Phone: ImageVector by lazy { stroke("Phone", "M9.5,2.5h5a2.5,2.5 0 0 1 2.5,2.5v14a2.5,2.5 0 0 1 -2.5,2.5h-5a2.5,2.5 0 0 1 -2.5,-2.5v-14a2.5,2.5 0 0 1 2.5,-2.5z", "M11 18.5h2") }
     val Copy: ImageVector by lazy { stroke("Copy", "M9.5,8h9a1.5,1.5 0 0 1 1.5,1.5v9a1.5,1.5 0 0 1 -1.5,1.5h-9a1.5,1.5 0 0 1 -1.5,-1.5v-9a1.5,1.5 0 0 1 1.5,-1.5z", "M16 8V5.5A1.5 1.5 0 0 0 14.5 4h-9A1.5 1.5 0 0 0 4 5.5v9A1.5 1.5 0 0 0 5.5 16H8") }
+    val Paste: ImageVector by lazy { stroke("Paste", "M8 5H6.5A1.5 1.5 0 0 0 5 6.5v13A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5v-13A1.5 1.5 0 0 0 17.5 5H16", "M9.5,3h5a1,1 0 0 1 1,1v1.5a1,1 0 0 1 -1,1h-5a1,1 0 0 1 -1,-1v-1.5a1,1 0 0 1 1,-1z") }
     val Paperclip: ImageVector by lazy { stroke("Paperclip", "M20 11.5l-8.2 8.2a5 5 0 0 1-7.1-7.1l8.5-8.5a3.3 3.3 0 0 1 4.7 4.7l-8.5 8.5a1.7 1.7 0 0 1-2.4-2.4l7.8-7.8") }
     val Volume: ImageVector by lazy { stroke("Volume", "M4 9.5h3.5L12 5.5v13l-4.5-4H4z", "M15.5 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11") }
     val VolumeOff: ImageVector by lazy { stroke("VolumeOff", "M4 9.5h3.5L12 5.5v13l-4.5-4H4z", "M16 9.5l5 5M21 9.5l-5 5") }
@@ -68,6 +70,19 @@ object Glyph {
     val Camera: ImageVector by lazy { stroke("Camera", "M5.5 7h13A2.5 2.5 0 0 1 21 9.5v8a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5v-8A2.5 2.5 0 0 1 5.5 7z", "M8.5 7l1.5-3h4l1.5 3", "M12 10a3.5 3.5 0 1 0 0 7a3.5 3.5 0 1 0 0-7z") }
     val Upload: ImageVector by lazy { stroke("Upload", "M12 16V4M7 9l5-5 5 5", "M4 16v3a1.5 1.5 0 0 0 1.5 1.5h13A1.5 1.5 0 0 0 20 19v-3") }
     val Close: ImageVector by lazy { stroke("Close", "M6 6l12 12M18 6L6 18") }
+}
+
+/**
+ * Omarchy Remote's mark (design/logo/omarchy-remote-B-celular.svg): Omarchy's maze with a phone
+ * inside, filled, on its 300-unit grid with a small margin. Tinted by Icon like the stroke glyphs.
+ */
+val RemoteMark: ImageVector by lazy {
+    ImageVector.Builder("RemoteMark", 24.dp, 24.dp, 370f, 370f)
+        .addGroup(translationX = 35f, translationY = 35f)
+        .addPath(PathParser().parsePathString("M0,0h300v20h-300zM0,0h20v300h-20zM280,0h20v300h-20zM0,280h160v20h-160zM180,280h120v20h-120zM140,20h20v20h-20zM40,40h120v20h-120zM220,40h40v20h-40zM40,40h20v220h-20zM240,40h20v220h-20zM40,240h220v20h-220zM140,260h20v20h-20zM20,140h20v20h-20zM140,185h20v10h-20z").toNodes(), fill = SolidColor(Color.White))
+        .addPath(PathParser().parsePathString("M128,75h44a28,28 0 0 1 28,28v94a28,28 0 0 1 -28,28h-44a28,28 0 0 1 -28,-28v-94a28,28 0 0 1 28,-28zM130,95h40a10,10 0 0 1 10,10v90a10,10 0 0 1 -10,10h-40a10,10 0 0 1 -10,-10v-90a10,10 0 0 1 10,-10z").toNodes(), fill = SolidColor(Color.White), pathFillType = PathFillType.EvenOdd)
+        .clearGroup()
+        .build()
 }
 
 private fun stroke(name: String, vararg paths: String): ImageVector {

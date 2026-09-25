@@ -11,8 +11,8 @@ from pathlib import Path
 BLOCK = 64 * 1024
 LINE_LIMIT = 4 * 1024 * 1024   # a line past this (an image, a huge output) is skipped, not loaded
 FORWARD_LIMIT = 8 * 1024 * 1024
-TEXT_LIMIT = 6000               # characters of a message
-OUTPUT_LIMIT = 1500             # characters of an action's output in a page; the rest on request
+TEXT_LIMIT = 20_000             # characters of a message (a final summary is read whole)
+OUTPUT_LIMIT = 4000             # characters of an action's output in a page; the rest on request
 FULL_LIMIT = 60_000             # characters of an output fetched whole
 TARGET_LIMIT = 300
 
@@ -28,7 +28,8 @@ def find(kind: str, session_id: str, home: Path | None = None) -> Path | None:
         return None
     home = home or Path.home()
     if kind == "claude":
-        found = sorted(home.glob(f".claude/projects/*/{session_id}.jsonl"))
+        # ~/.claude and any second account kept apart with CLAUDE_CONFIG_DIR=~/.claude-<name>.
+        found = sorted(home.glob(f".claude/projects/*/{session_id}.jsonl")) + sorted(home.glob(f".claude-*/projects/*/{session_id}.jsonl"))
     elif kind == "codex":
         found = sorted(home.glob(f".codex/sessions/*/*/*/rollout-*-{session_id}.jsonl"))
     else:

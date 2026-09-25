@@ -1,6 +1,7 @@
 import asyncio
 import os
 import struct
+import sys
 
 import pytest
 from aiohttp import WSMsgType
@@ -44,12 +45,13 @@ def test_herdr_command_attaches_to_the_named_session():
     assert herdr_command("default") == ["herdr", "--session", "default"]
 
 
-def run(scenario, term_command, term_window=None):
+def run(scenario, term_command, term_window=None, term_keys=None):
     async def main():
         async def whois(_):
             return PHONE
 
         extra = {"term_window": term_window} if term_window else {}
+        extra["term_keys"] = term_keys or (lambda: {})
         app = create_app(FakeInjector(), {"samsung-sm-s928b"}, TAILNET, TOKEN, whois, term_command=term_command, **extra)
         async with TestClient(TestServer(app)) as client, controller(client):
             await scenario(client)
@@ -77,7 +79,7 @@ def test_terminal_streams_both_ways_and_resizes():
     async def scenario(client):
         ws = await client.ws_connect("/v1/term", headers={TOKEN_HEADER: TOKEN})
         await ws.send_json({"type": "term.start", "cols": 100, "rows": 30, "session": "default"})
-        assert await ws.receive_json() == {"type": "term", "cols": 100, "rows": 30, "session": "default"}
+        assert await ws.receive_json() == {"type": "term", "cols": 100, "rows": 30, "session": "default", "actions": []}
         await collect(ws, lambda d: b"ready" in d)
         await ws.send_bytes(b"abc\n")
         assert b"abc" in await collect(ws, lambda d: b"abc" in d)
@@ -167,3 +169,26 @@ def test_output_waits_for_the_phone_to_draw_it():
         await ws.close()
 
     run(scenario, lambda session: ["sh", "-c", "head -c 2000000 /dev/zero | tr '\\0' x; printf END; cat"], term_window=window)
+
+
+def test_herdr_actions_are_offered_and_typed_into_the_terminal():
+    """The phone names an action (close the pane…); the host writes the person's own herdr keys."""
+    keys = {"prefix": b"\x00", "close_pane": b"\x00x", "split_vertical": b"\x1b\r"}
+
+    async def scenario(client):
+        ws = await client.ws_connect("/v1/term", headers={TOKEN_HEADER: TOKEN})
+        await ws.send_json({"type": "term.start", "cols": 100, "rows": 30})
+        reply = await ws.receive_json()
+        assert reply["actions"] == ["close_pane", "prefix", "split_vertical"]
+        await collect(ws, lambda d: b"ready" in d)
+        await ws.send_json({"type": "term.action", "action": "close_pane"})
+        await ws.send_json({"type": "term.action", "action": "rm -rf"})  # unknown: ignored, the terminal stays
+        await ws.send_json({"type": "term.action", "action": ["close_pane"]})
+        await ws.send_json({"type": "term.action", "action": "split_vertical"})
+        out = await collect(ws, lambda d: b"1b0d" in d)
+        assert b"0078" in out and b"1b0d" in out
+        await ws.close()
+
+    # The child prints each byte it gets as hex, raw (no line discipline in between).
+    child = "import os,sys,tty; tty.setraw(0); os.write(1,b'ready')\nwhile True:\n b=os.read(0,64)\n if not b: break\n os.write(1,b.hex().encode())"
+    run(scenario, lambda session: [sys.executable, "-c", child], term_keys=lambda: keys)

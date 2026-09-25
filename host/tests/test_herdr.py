@@ -36,7 +36,14 @@ elif args[:2] == ["agent", "prompt"] and any(a == "--" or (a.startswith("-") and
 elif args[:2] == ["agent", "get"]:
     session = {"agent": "claude", "kind": "id", "source": "herdr:claude", "value": "856c1e70-0a17-485b-9553-e5f1a24ddb1f"}
     print(json.dumps({"id": "cli:agent:get", "result": {"type": "agent_info", "agent": {"pane_id": args[2], "agent": "claude",
-        "agent_session": session if args[2] == "w1:p1" else None}}}))
+        "agent_session": session if args[2] == "w1:p1" else None} | ({"agent": "codex"} if args[2] == "w1:p4" else {})}}))
+elif args[:2] == ["pane", "process-info"]:
+    pane = args[args.index("--pane") + 1]
+    argv = {"w1:p3": ["claude", "--dangerously-skip-permissions", "--resume", "7a2a2b65-287a-4d90-809f-cc1033d25b36"],
+            "w1:p4": ["codex", "resume", "01a0ce50-138e-7bb0-adf1-efe275fd8b69"],
+            "w1:p5": ["claude", "--resume", "../../etc/passwd"]}.get(pane, ["claude"])
+    pid = {"w1:p6": 4242, "w1:p3": 4343}.get(pane, 999)
+    print(json.dumps({"id": "cli", "result": {"process_info": {"pane_id": pane, "foreground_processes": [{"argv": argv, "name": argv[0], "pid": pid}]}}}))
 elif args[:2] in (["agent", "send-keys"], ["agent", "prompt"], ["agent", "focus"]):
     print(json.dumps({"id": "cli", "result": {"args": args}}))
 else:
@@ -49,7 +56,7 @@ def herdr(tmp_path):
     binary = tmp_path / "herdr"
     binary.write_text(FAKE)
     binary.chmod(binary.stat().st_mode | stat.S_IEXEC)
-    return Herdr(binary=str(binary))
+    return Herdr(binary=str(binary), home=tmp_path)
 
 
 def test_agents_come_from_the_result(herdr):
@@ -105,6 +112,28 @@ def test_missing_binary_is_not_available():
 
 def test_the_session_a_pane_runs_comes_from_herdr(herdr):
     assert asyncio.run(herdr.session("w1:p1")) == ("claude", "856c1e70-0a17-485b-9553-e5f1a24ddb1f")
+    assert asyncio.run(herdr.session("w1:p2")) is None
+
+
+def test_without_herdrs_session_the_resume_argument_tells_it(herdr):
+    """Agents herdr didn't identify (started before its hooks, another config dir): the command line
+    they were resumed with says which session they are."""
+    assert asyncio.run(herdr.session("w1:p3")) == ("claude", "7a2a2b65-287a-4d90-809f-cc1033d25b36")
+    assert asyncio.run(herdr.session("w1:p4")) == ("codex", "01a0ce50-138e-7bb0-adf1-efe275fd8b69")
+    assert asyncio.run(herdr.session("w1:p5")) is None  # not an id
+
+
+def test_claudes_own_record_of_the_running_session_wins(herdr, tmp_path):
+    """Claude Code writes <config dir>/sessions/<pid>.json with the session it is in now (after a
+    /clear too): a `claude` started without --resume is found by it."""
+    import json
+    (tmp_path / ".claude-work/sessions").mkdir(parents=True)
+    (tmp_path / ".claude-work/sessions/4242.json").write_text(json.dumps({"pid": 4242, "sessionId": "260e9dce-6807-4f30-8ee0-1a100b9773e0"}))
+    (tmp_path / ".claude/sessions").mkdir(parents=True)
+    (tmp_path / ".claude/sessions/4343.json").write_text(json.dumps({"pid": 4343, "sessionId": "11111111-2222-4333-8444-555555555555"}))
+    (tmp_path / ".claude/sessions/999.json").write_text(json.dumps({"pid": 999, "sessionId": "not an id"}))
+    assert asyncio.run(herdr.session("w1:p6")) == ("claude", "260e9dce-6807-4f30-8ee0-1a100b9773e0")
+    assert asyncio.run(herdr.session("w1:p3")) == ("claude", "11111111-2222-4333-8444-555555555555")  # newer than its --resume
     assert asyncio.run(herdr.session("w1:p2")) is None
 
 

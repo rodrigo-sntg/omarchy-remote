@@ -66,6 +66,9 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.delay
+import androidx.compose.ui.graphics.asImageBitmap
+import okhttp3.HttpUrl.Companion.toHttpUrl
+import com.sandevsystems.omarchyremote.input.ModifierKeys
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
@@ -159,7 +162,7 @@ class KeypadViewModel(application: Application) : AndroidViewModel(application) 
         term?.close()
         term = TermChannel(
             url, secrets.pairingCode, cols, rows,
-            onOpen = {},
+            onOpen = { termActions = it },
             onBytes = { data -> termSink?.invoke(data) ?: termPending.add(data) },
             onClosed = { reason ->
                 if (terminalOpen) message = reason
@@ -168,8 +171,17 @@ class KeypadViewModel(application: Application) : AndroidViewModel(application) 
         )
     }
 
+    /** herdr's shortcuts the PC offers for this terminal (TermActions). */
+    var termActions by mutableStateOf(emptySet<String>())
+        private set
+
+    fun termAction(name: String) {
+        term?.action(name)
+    }
+
     fun closeTerminal() {
         terminalOpen = false
+        termActions = emptySet()
         term?.close()
         term = null
         termPending.clear()
@@ -690,6 +702,26 @@ class KeypadViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    /** "Copiar": Omarchy's universal copy (Super+C, terminals too) on the PC, then that copy here. */
+    fun copyOnPc() {
+        typeShortcut("c", ModifierKeys.SUPER)
+        if (transport != Transport.NETWORK || connection.value !is Connected) return
+        viewModelScope.launch {
+            delay(450)  // the app on the PC takes a moment to put it on the clipboard
+            network.clipboardGet()
+        }
+    }
+
+    /** "Colar": the phone's copy to the PC's clipboard, then Omarchy's universal paste (Super+V). */
+    fun pasteOnPc() {
+        if (transport != Transport.NETWORK) return typeShortcut("v", ModifierKeys.SUPER)
+        viewModelScope.launch {
+            val outcome = PcClipboard.afterSend(getApplication<KeypadApp>().sendPhoneClip(explicit = true))
+            if (outcome.paste) typeShortcut("v", ModifierKeys.SUPER)
+            outcome.message?.let { showMessage(it) }
+        }
+    }
+
     /** The PC's clipboard to the phone's (it arrives and is copied by KeypadApp). */
     fun copyPcClipboard() {
         if (transport != Transport.NETWORK || connection.value !is Connected) return showMessage(tr("Conecte-se pela rede para usar a área de transferência do PC.", "Connect over the network to use the PC clipboard."))
@@ -1053,6 +1085,24 @@ class KeypadViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    /** The agents' recent sessions; a closed one can be reopened. */
+    val sessions: StateFlow<List<com.sandevsystems.omarchyremote.network.RecentSession>> = network.sessions
+
+    fun loadSessions() = network.listSessions()
+
+    /** The session open again (its chat opens once it runs); an open one just opens. */
+    fun resumeSession(session: com.sandevsystems.omarchyremote.network.RecentSession) {
+        session.pane?.let { startedAgent = it; return }
+        if (startingAgent) return
+        startingAgent = true
+        viewModelScope.launch {
+            val ok = network.resumeSession(session.kind, session.id)
+            startingAgent = false
+            if (!ok) showMessage(tr("A sessão não reabriu. Veja o herdr no PC.", "The session didn't reopen. Check herdr on the PC."))
+            else network.listSessions()
+        }
+    }
+
     /** The subagents of the open agent, as last read. */
     val agentSubagents: StateFlow<Pair<String, List<com.sandevsystems.omarchyremote.network.Subagent>>?> = network.agentSubagents
 
@@ -1105,6 +1155,39 @@ class KeypadViewModel(application: Application) : AndroidViewModel(application) 
                 else onMention(if (agent.kind == "claude") "@$ref" else ref)
             }
         }
+    }
+
+    private val imageClient by lazy { com.sandevsystems.omarchyremote.network.TailnetDns.client().build() }
+    private val imageCache = android.util.LruCache<String, androidx.compose.ui.graphics.ImageBitmap>(24)
+
+    /**
+     * An image the agent [agent] named in its chat (ImageRefs), from the PC (host images.py), no side
+     * larger than [maxSide] px; null when it isn't there or can't go (not an image, hidden folder…).
+     */
+    suspend fun agentImage(agent: String, path: String, maxSide: Int): androidx.compose.ui.graphics.ImageBitmap? {
+        val key = "$agent|$path|$maxSide"
+        imageCache.get(key)?.let { return it }
+        val base = prefs.getString("network_address", null)?.let(NetworkAddress::url)
+        if (transport != Transport.NETWORK || connection.value !is Connected || base == null) return null
+        val http = com.sandevsystems.omarchyremote.network.FileTransfer.httpUrl(base, "agent-image") ?: return null
+        val url = runCatching {
+            http.toHttpUrl().newBuilder().addQueryParameter("agent", agent).addQueryParameter("path", path).build()
+        }.getOrNull() ?: return null
+        val code = secrets.pairingCode
+        val image = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            runCatching {
+                val request = okhttp3.Request.Builder().url(url).header("X-Keypad-Token", code).build()
+                val bytes = imageClient.newCall(request).execute().use { r -> if (r.isSuccessful) r.body?.bytes() else null } ?: return@runCatching null
+                val bounds = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+                var sample = 1
+                while (maxOf(bounds.outWidth, bounds.outHeight) / (sample * 2) >= maxSide) sample *= 2
+                android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size, android.graphics.BitmapFactory.Options().apply { inSampleSize = sample })
+                    ?.asImageBitmap()
+            }.getOrNull()
+        } ?: return null
+        imageCache.put(key, image)
+        return image
     }
 
     private fun videoUrl(path: String): String? {

@@ -125,3 +125,13 @@ def test_a_screen_read_may_ask_for_its_colors():
         return json.dumps({"v": 1, "sessionId": "s", "seq": 1, "type": "agent.read", "payload": p})
     assert parse(frame({"id": "w1:p1", "lines": 60})).payload == {"id": "w1:p1", "lines": 60, "ansi": False}
     assert parse(frame({"id": "w1:p1", "lines": 60, "ansi": True})).payload["ansi"] is True
+
+
+def test_a_session_to_reopen_is_named_by_its_uuid_only():
+    ok = parse(frame("agent.resume", {"kind": "codex", "session": "01a0ce50-138e-7bb0-adf1-efe275fd8b69"}))
+    assert ok.payload == {"kind": "codex", "session": "01a0ce50-138e-7bb0-adf1-efe275fd8b69"}
+    assert parse(frame("agent.sessions", {})).payload == {}
+    for bad in ({"kind": "claude", "session": "../../etc/passwd"}, {"kind": "claude", "session": "01A0CE50-138E-7BB0-ADF1-EFE275FD8B69"},
+                {"kind": "pi", "session": "01a0ce50-138e-7bb0-adf1-efe275fd8b69"}, {"kind": "claude"}):
+        with pytest.raises(ProtocolError):
+            parse(frame("agent.resume", bad))

@@ -62,6 +62,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.sandevsystems.omarchyremote.network.AgentsText
 import com.sandevsystems.omarchyremote.ConnectionState
 import com.sandevsystems.omarchyremote.KeypadViewModel
 import com.sandevsystems.omarchyremote.Transport
@@ -234,7 +235,7 @@ fun KeypadScreen(vm: KeypadViewModel) {
             state, network, capsLock, if (layer == Layer.KEYS) 0 else vm.modifiers,
             onComputer = ::openComputer, onSettings = { sheet = Sheet.SETTINGS }, onReleaseModifiers = vm::releaseModifiers,
             agentsSummary = agents.takeIf { network && connected && herdrAvailable && it.isNotEmpty() }?.let { list ->
-                val waiting = list.count { it.status == "blocked" || it.status == "done" }
+                val waiting = list.count(AgentsText::needsYou)
                 when {
                     waiting > 0 -> "!" + tr("$waiting esperando você", "$waiting waiting for you")
                     list.size == 1 -> tr("1 agente", "1 agent")
@@ -293,7 +294,7 @@ fun KeypadScreen(vm: KeypadViewModel) {
         } else if (landscape && showTabs && tab != MainTab.CONTROL) {
             // Landscape: the same places, with the tabs as a rail at the side.
             Row(Modifier.fillMaxSize().safeDrawingPadding()) {
-                TabBar(tab, agents.count { it.status == "blocked" || it.status == "done" }, vertical = true, onSelect = { tab = it; layer = Layer.NONE })
+                TabBar(tab, agents.count(AgentsText::needsYou), vertical = true, onSelect = { tab = it; layer = Layer.NONE })
                 Box(Modifier.weight(1f).fillMaxHeight()) {
                     when (tab) {
                         MainTab.SCREEN -> ScreenTab(vm, { openViewPc(it) }, {
@@ -309,7 +310,7 @@ fun KeypadScreen(vm: KeypadViewModel) {
         } else if (landscape) {
             Row(Modifier.fillMaxSize().safeDrawingPadding().padding(end = 14.dp, top = 12.dp, bottom = 14.dp, start = if (showTabs) 0.dp else 14.dp),
                 horizontalArrangement = Arrangement.spacedBy(13.dp)) {
-                if (showTabs) TabBar(tab, agents.count { it.status == "blocked" || it.status == "done" }, vertical = true, onSelect = { tab = it; layer = Layer.NONE })
+                if (showTabs) TabBar(tab, agents.count(AgentsText::needsYou), vertical = true, onSelect = { tab = it; layer = Layer.NONE })
                 Column(Modifier.width(270.dp).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         PcPill(state, network, ::openComputer)
@@ -365,7 +366,7 @@ fun KeypadScreen(vm: KeypadViewModel) {
                 // An open agent is a conversation: the whole screen, like Messages (design 5C).
                 val inAgent = tab == MainTab.AGENTS && agents.any { it.id == selectedAgent }
                 if (showTabs && !inAgent) {
-                    val waiting = agents.count { it.status == "blocked" || it.status == "done" }
+                    val waiting = agents.count(AgentsText::needsYou)
                     TabBar(tab, waiting, vertical = false, onSelect = { tab = it; layer = Layer.NONE })
                 }
             }

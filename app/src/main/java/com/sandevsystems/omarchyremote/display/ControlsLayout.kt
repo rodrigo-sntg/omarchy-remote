@@ -17,7 +17,8 @@ data class ControlsLayout(
     /** The tools that can sit in the group ("Mais" is always there: it is the way back to this). */
     enum class Tool(private val pt: String, private val en: String) {
         RIGHT("Direito", "Right click"), HOLD("Segurar", "Hold"), LOUPE("Lupa", "Magnifier"), SCREENS("Telas", "Screens"),
-        TEXT("Copiar texto", "Copy text"), PRINT("Print", "Screenshot"), PRESENT("Apresentar", "Present");
+        TEXT("Ler texto", "Read text"), PRINT("Print", "Screenshot"), PRESENT("Apresentar", "Present"),
+        COPY("Copiar", "Copy"), PASTE("Colar", "Paste");
 
         val label: String get() = tr(pt, en)
     }
@@ -37,17 +38,21 @@ data class ControlsLayout(
 
     fun encode(): String = listOf(
         tools.joinToString(",") { it.name }, size.name, idle.name,
-        "${toolsAt.first}:${toolsAt.second}", "${typeAt.first}:${typeAt.second}",
+        "${toolsAt.first}:${toolsAt.second}", "${typeAt.first}:${typeAt.second}", VERSION,
     ).joinToString("|")
 
     companion object {
-        val DEFAULT = ControlsLayout(setOf(Tool.RIGHT, Tool.HOLD, Tool.LOUPE), Size.MEDIUM, Idle.FADE, 0.96f to 0.72f, 0.05f to 0.88f)
+        val DEFAULT = ControlsLayout(setOf(Tool.RIGHT, Tool.HOLD, Tool.LOUPE, Tool.COPY, Tool.PASTE), Size.MEDIUM, Idle.FADE, 0.96f to 0.72f, 0.05f to 0.88f)
+
+        /** "2": Copiar and Colar exist. A layout saved before gets them once; after that it is the person's choice. */
+        private const val VERSION = "2"
 
         fun decode(text: String?): ControlsLayout = runCatching {
             val parts = text!!.split("|")
             fun pair(s: String) = s.split(":").let { (x, y) -> x.toFloat().coerceIn(0f, 1f) to y.toFloat().coerceIn(0f, 1f) }
+            val tools = parts[0].split(",").filter { it.isNotEmpty() }.map { Tool.valueOf(it) }.toSet()
             ControlsLayout(
-                parts[0].split(",").filter { it.isNotEmpty() }.map { Tool.valueOf(it) }.toSet(),
+                if (parts.getOrNull(5) == VERSION) tools else tools + Tool.COPY + Tool.PASTE,
                 Size.valueOf(parts[1]), Idle.valueOf(parts[2]), pair(parts[3]), pair(parts[4]),
             )
         }.getOrDefault(DEFAULT)

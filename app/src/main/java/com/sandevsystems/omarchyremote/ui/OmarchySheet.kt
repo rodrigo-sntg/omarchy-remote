@@ -40,6 +40,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.sandevsystems.omarchyremote.network.AgentsText
 import com.sandevsystems.omarchyremote.KeypadViewModel
 import androidx.compose.foundation.layout.ColumnScope
 import com.sandevsystems.omarchyremote.network.Agent
@@ -190,7 +191,7 @@ private fun Card(content: @Composable ColumnScope.() -> Unit) = Column(
 /** "Agora": agents, media, reminder and updates at a glance, each with its one action. */
 @Composable
 private fun NowCards(vm: KeypadViewModel, now: NowState?, agents: List<Agent>, onAgents: () -> Unit) {
-    val waiting = agents.count { it.status == "blocked" || it.status == "done" }
+    val waiting = agents.count(AgentsText::needsYou)
     PcCard(vm)
     if (agents.isNotEmpty()) Card {
         Overline(tr("Agentes do herdr", "herdr agents"), color = if (waiting > 0) KeypadColors.Accent else KeypadColors.TextMute)

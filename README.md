@@ -16,9 +16,10 @@ It checks what's needed, installs, asks you before anything that needs `sudo` or
 
 ## What it does
 
-- **Control:** trackpad (tap, drag, two-finger scroll, three-finger workspace switch), keyboard that types in the PC's layout, shortcut row, workspace buttons.
+- **Control:** trackpad (tap, drag, two-finger scroll, three-finger workspace switch), keyboard that types in the PC's layout, shortcut row, workspace buttons, Copy and Paste (Omarchy's universal clipboard, terminals included).
 - **Screen:** a live map of your monitors with thumbnails; see and touch the PC's screen from anywhere; follow the focused window; use the phone as an extra display.
-- **AI agents:** Claude Code and Codex running in [herdr](https://herdr.dev), as chats: the whole conversation, permission requests as buttons, diffs, the `/` menu of each agent, subagents, the project's git status, model picker, voice input. Notifications when an agent needs you or finishes, with Allow, Deny and Reply (after unlocking the phone).
+- **AI agents:** Claude Code and Codex running in [herdr](https://herdr.dev), as chats: the whole conversation, permission requests as buttons, diffs, the `/` menu of each agent, subagents, the project's git status, model picker, voice input. Images the agent names show right in the chat. A session closed by mistake reopens from *Recently closed*, with the options it ran with. A second Claude account (`CLAUDE_CONFIG_DIR=~/.claude-<name>`) gets its own color and its own limits. Notifications when an agent needs you or finishes, with Allow, Deny and Reply (after unlocking the phone).
+- **Terminal:** herdr on the phone, with its panes and tabs one tap away (split, close, switch; your own herdr keys) and Paste.
 - **Control center:** media, volume and output, microphone, night light, do not disturb, stay awake, screen recording, power profile, wallpaper, bar, gaps, lock, suspend, restart and shut down.
 - **Omarchy:** the app follows the active Omarchy theme; Omarchy's menu, keybindings and windows are one tap away; a *Phone* menu and a bar icon on the PC.
 - **Files and clipboard:** send files and screenshots both ways, with progress; the clipboard syncs by itself.

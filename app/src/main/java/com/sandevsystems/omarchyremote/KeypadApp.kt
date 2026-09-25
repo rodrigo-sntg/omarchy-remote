@@ -1,5 +1,6 @@
 package com.sandevsystems.omarchyremote
 
+import com.sandevsystems.omarchyremote.network.SeenAgents
 import com.sandevsystems.omarchyremote.ui.I18n
 import android.app.Application
 import android.content.Context
@@ -55,6 +56,8 @@ class KeypadApp : Application() {
         super.onCreate()
         // Notifications and the widget can speak before any screen opens.
         I18n.set(I18n.Choice.from(prefs.getString("language", null)))
+        SeenAgents.load(prefs.getString("seen_agents", null))
+        SeenAgents.onChange = { prefs.edit().putString("seen_agents", it).apply() }
         NetworkAddress.loopbackAllowed = applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
         if (following) follow(true)
         // The notification follows the connection and the agents; posted only when its text changes.
@@ -217,7 +220,7 @@ class KeypadApp : Application() {
         // theme's accent only when it is a dark theme's (readable on dark).
         val accent = if (KeypadColors.Light) 0xFFC5F24A.toInt() else KeypadColors.Accent.toArgb()
         AgentsWidget.show(this, title, detail, 0xFFECEEF0.toInt(), 0xFF99A1A8.toInt(), accent,
-            urgent = agents.any { it.status == "blocked" || it.status == "done" })
+            urgent = agents.any(AgentsText::needsYou))
     }
 
     private fun refreshStatus() {

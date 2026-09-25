@@ -77,4 +77,5 @@ def test_the_list_counts_each_agents_running_subagents(tmp_path):
     commands = AgentCommands(Herdr(), home=tmp_path)
     agents = [{"id": "w1:p1", "kind": "claude"}, {"id": "w2:p1", "kind": "codex"}]
     counted = asyncio.run(commands.with_subagents(agents))
-    assert counted == [{"id": "w1:p1", "kind": "claude", "subagents": 2}, {"id": "w2:p1", "kind": "codex"}]
+    assert counted[0]["subagents"] == 2 and counted[0]["active"] > 0
+    assert counted[1] == {"id": "w2:p1", "kind": "codex"}

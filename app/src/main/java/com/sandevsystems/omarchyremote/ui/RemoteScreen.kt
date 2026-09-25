@@ -136,6 +136,8 @@ private val ControlsLayout.Tool.icon: ImageVector
         ControlsLayout.Tool.TEXT -> Glyph.Lines
         ControlsLayout.Tool.PRINT -> Glyph.Monitor
         ControlsLayout.Tool.PRESENT -> Glyph.Play
+        ControlsLayout.Tool.COPY -> Glyph.Copy
+        ControlsLayout.Tool.PASTE -> Glyph.Paste
     }
 
 /**
@@ -321,14 +323,21 @@ fun RemoteScreen(vm: KeypadViewModel) {
             }
         }
 
-        WorkspaceEdge(workspaces, idle, vm::goToWorkspace, Modifier.align(Alignment.CenterStart))
-        RemoteChip(
-            monitor = if (vm.videoMode == VideoMode.DISPLAY) tr("celular como tela", "phone as a screen") else vm.focusedWindow?.let { tr("janela · ${it.take(24)}", "window · ${it.take(24)}") } ?: vm.currentMonitor ?: "…",
-            mode = vm.videoStatsText,
-            faded = idle && overlay == Overlay.NONE,
-            onClick = { overlay = if (overlay == Overlay.SCREENS) Overlay.NONE else Overlay.SCREENS },
-            modifier = Modifier.align(Alignment.TopStart).padding(start = 14.dp, top = 12.dp),
-        )
+        // Where you are and the workspaces, together along the top: the left edge is where a phone
+        // held sideways has its camera.
+        Row(
+            Modifier.align(Alignment.TopStart).padding(start = 14.dp, top = 12.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            RemoteChip(
+                monitor = if (vm.videoMode == VideoMode.DISPLAY) tr("celular como tela", "phone as a screen") else vm.focusedWindow?.let { tr("janela · ${it.take(24)}", "window · ${it.take(24)}") } ?: vm.currentMonitor ?: "…",
+                mode = vm.videoStatsText,
+                faded = idle && overlay == Overlay.NONE,
+                onClick = { overlay = if (overlay == Overlay.SCREENS) Overlay.NONE else Overlay.SCREENS },
+                modifier = Modifier,
+            )
+            WorkspacePills(workspaces, idle && overlay == Overlay.NONE, vm::goToWorkspace)
+        }
         // What is switched on, in words, with a way out: modes are easy to forget.
         val mode = when {
             vm.videoHold -> tr("Botão esquerdo segurado", "Left button held") to { vm.toggleVideoHold() }
@@ -381,6 +390,8 @@ fun RemoteScreen(vm: KeypadViewModel) {
                                 ControlsLayout.Tool.TEXT -> overlay = if (vm.videoMode == VideoMode.SCREEN) Overlay.SELECT_TEXT else Overlay.NONE
                                 ControlsLayout.Tool.PRINT -> vm.printPc(vm.currentMonitor)
                                 ControlsLayout.Tool.PRESENT -> vm.togglePresenting()
+                                ControlsLayout.Tool.COPY -> vm.copyOnPc()
+                                ControlsLayout.Tool.PASTE -> vm.pasteOnPc()
                             }
                         }
                     }
@@ -461,7 +472,13 @@ fun RemoteScreen(vm: KeypadViewModel) {
                     Overline(tr("Ferramentas", "Tools"))
                     val screen = vm.videoMode == VideoMode.SCREEN
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Key(tr("Copiar texto", "Copy text"), { overlay = Overlay.SELECT_TEXT }, Modifier.weight(1f), height = 48.dp, style = KeypadType.KeySmall,
+                        Key(tr("Copiar", "Copy"), { overlay = Overlay.NONE; vm.copyOnPc() }, Modifier.weight(1f), height = 48.dp, style = KeypadType.KeySmall,
+                            description = tr("Copia o que está selecionado no PC, e traz para o celular", "Copies what is selected on the PC, and brings it to the phone"))
+                        Key(tr("Colar", "Paste"), { overlay = Overlay.NONE; vm.pasteOnPc() }, Modifier.weight(1f), height = 48.dp, style = KeypadType.KeySmall,
+                            description = tr("Cola no PC o que você copiou no celular", "Pastes on the PC what you copied on the phone"))
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Key(tr("Ler texto", "Read text"), { overlay = Overlay.SELECT_TEXT }, Modifier.weight(1f), height = 48.dp, style = KeypadType.KeySmall,
                             enabled = screen, description = if (screen) null else tr("Só ao ver um monitor", "Only when viewing a monitor"))
                         Key(tr("Print", "Screenshot"), { overlay = Overlay.NONE; vm.printPc(vm.currentMonitor) }, Modifier.weight(1f), height = 48.dp, style = KeypadType.KeySmall)
                     }
@@ -655,25 +672,28 @@ private fun ArrangePanel(layout: ControlsLayout, onChange: (ControlsLayout) -> U
     }
 }
 
-/** One tab per workspace on the left edge: current wide, accent and numbered; 30 % at rest. */
+/** The workspaces as numbered pills beside the chip: the current one in the accent; faded at rest like the chip. */
 @Composable
-private fun WorkspaceEdge(workspaces: List<com.sandevsystems.omarchyremote.network.Workspace>, faded: Boolean, onGo: (Int) -> Unit, modifier: Modifier) {
+private fun WorkspacePills(workspaces: List<com.sandevsystems.omarchyremote.network.Workspace>, faded: Boolean, onGo: (Int) -> Unit) {
     if (workspaces.isEmpty()) return
     val view = LocalView.current
-    val alpha by animateFloatAsState(if (faded) 0.3f else 1f, tween(300), label = "edge")
-    Column(modifier.alpha(alpha).systemGestureExclusion(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    val alpha by animateFloatAsState(if (faded) 0.45f else 1f, tween(300), label = "workspaces")
+    val shape = RoundedCornerShape(17.dp)
+    Row(
+        Modifier.alpha(alpha).height(34.dp).clip(shape).background(Color(0xC70A0D0F)).border(1.dp, Color.White.copy(alpha = 0.09f), shape)
+            .padding(horizontal = 3.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
         for (w in workspaces) {
             val current = w.focused
             Box(
-                Modifier.width(34.dp).height(36.dp).clickable { Haptic.tap(view); onGo(w.id) }
+                Modifier.size(width = 34.dp, height = 28.dp).clip(RoundedCornerShape(14.dp))
+                    .background(if (current) KeypadColors.Accent.copy(alpha = 0.9f) else Color.Transparent)
+                    .clickable { Haptic.tap(view); onGo(w.id) }
                     .semantics { contentDescription = "Workspace ${w.id}"; if (current) stateDescription = tr("atual", "current") },
-                contentAlignment = Alignment.CenterStart,
+                contentAlignment = Alignment.Center,
             ) {
-                Box(
-                    Modifier.width(if (current) 26.dp else 14.dp).height(30.dp).clip(RoundedCornerShape(topEnd = 9.dp, bottomEnd = 9.dp))
-                        .background(if (current) KeypadColors.Accent.copy(alpha = 0.85f) else Color.White.copy(alpha = 0.1f)),
-                    contentAlignment = Alignment.Center,
-                ) { if (current) Text("${w.id}", style = KeypadType.Mono, color = KeypadColors.OnAccent) }
+                Text("${w.id}", style = KeypadType.Mono, color = if (current) KeypadColors.OnAccent else KeypadColors.Text.copy(alpha = 0.8f))
             }
         }
     }
@@ -708,7 +728,11 @@ private fun TouchpadLayer(vm: KeypadViewModel, t: ViewTransform, applyMatrix: ()
                 }
             }
             awaitEachGesture {
-                awaitFirstDown(requireUnconsumed = true)
+                // The finger landing is the gesture's first frame: without it a quick tap reached the
+                // gesture only as "lifted" and was lost (it clicked only when the finger wobbled).
+                val first = awaitFirstDown(requireUnconsumed = true)
+                gesture.naturalScroll = natural
+                gesture.onFrame(listOf(TouchPoint(first.id.value, first.position.x, first.position.y)), first.uptimeMillis).forEach(::handle)
                 var dragging = false
                 try {
                     do {
@@ -861,6 +885,8 @@ private fun TapEcho(at: Offset, stamp: Long) {
 @Composable
 private fun TypingBar(vm: KeypadViewModel, onClose: () -> Unit, modifier: Modifier) {
     var ctrl by remember { mutableStateOf(false) }
+    HideKeyboardOnLeave()
+    val hideKeyboard = rememberHideKeyboard()
     val keys = listOf("Esc" to 0x29, "Tab" to 0x2B, "←" to 0x50, "↑" to 0x52, "↓" to 0x51, "→" to 0x4F, "⌫" to 0x2A, "⏎" to 0x28)
     Column(
         modifier.fillMaxWidth().imePadding().background(Color(0xF00A0D0F)).padding(horizontal = 10.dp, vertical = 8.dp),
@@ -875,7 +901,11 @@ private fun TypingBar(vm: KeypadViewModel, onClose: () -> Unit, modifier: Modifi
                     ctrl = false
                 }, Modifier.weight(1f), height = 40.dp, style = KeypadType.KeySmall)
             }
-            Key(tr("Fechar", "Close"), onClose, Modifier.weight(1.4f), height = 40.dp, style = KeypadType.KeySmall)
+            Key(tr("Copiar", "Copy"), vm::copyOnPc, Modifier.weight(1.3f), height = 40.dp, style = KeypadType.KeySmall,
+                description = tr("Copia o que está selecionado no PC", "Copies what is selected on the PC"))
+            Key(tr("Colar", "Paste"), vm::pasteOnPc, Modifier.weight(1.3f), height = 40.dp, style = KeypadType.KeySmall,
+                description = tr("Cola no PC o que você copiou no celular", "Pastes on the PC what you copied on the phone"))
+            Key(tr("Fechar", "Close"), { hideKeyboard(); onClose() }, Modifier.weight(1.4f), height = 40.dp, style = KeypadType.KeySmall)
         }
         AndroidView(
             factory = { ctx ->

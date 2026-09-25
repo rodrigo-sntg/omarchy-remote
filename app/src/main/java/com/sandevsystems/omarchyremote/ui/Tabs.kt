@@ -98,7 +98,7 @@ fun TabBar(current: MainTab, waiting: Int, vertical: Boolean, onSelect: (MainTab
         Triple(MainTab.CONTROL, Glyph.Mouse, tr("Controle", "Control")),
         Triple(MainTab.SCREEN, Glyph.ViewPc, tr("Tela", "Screen")),
         Triple(MainTab.AGENTS, Glyph.Terminal, tr("Agentes", "Agents")),
-        Triple(MainTab.PC, Glyph.Grid, "PC"),
+        Triple(MainTab.PC, RemoteMark, "Omarchy"),
     )
     val item: @Composable (MainTab, ImageVector, String, Modifier) -> Unit = { tab, icon, label, m ->
         val on = tab == current
@@ -315,13 +315,8 @@ fun KeyboardButton(onClick: () -> Unit) {
 fun KeyboardPanel(vm: KeypadViewModel, onClose: () -> Unit, modifier: Modifier = Modifier) {
     var ctrl by remember { mutableStateOf(false) }
     // The phone keyboard goes away with the panel (it would stay up over the tabs otherwise).
-    val host = LocalView.current
-    DisposableEffect(Unit) {
-        onDispose {
-            host.context.getSystemService(android.view.inputmethod.InputMethodManager::class.java)
-                ?.hideSoftInputFromWindow(host.windowToken, 0)
-        }
-    }
+    HideKeyboardOnLeave()
+    val hideKeyboard = rememberHideKeyboard()
     var more by rememberSaveable { mutableStateOf(false) }
     val dictate = rememberDictation({ vm.showMessage(tr("Este celular não tem reconhecimento de voz.", "This phone has no speech recognition.")) }) { spoken ->
         vm.typeLive(com.sandevsystems.omarchyremote.input.TypingDiff.Change(0, spoken))
@@ -334,7 +329,7 @@ fun KeyboardPanel(vm: KeypadViewModel, onClose: () -> Unit, modifier: Modifier =
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(tr("Teclado", "Keyboard"), Modifier.weight(1f), style = KeypadType.SheetTitle.copy(fontSize = 20.sp, fontWeight = FontWeight.ExtraBold),
                 color = KeypadColors.Text)
-            ActionKey(tr("Fechar", "Close"), onClose)
+            ActionKey(tr("Fechar", "Close"), { hideKeyboard(); onClose() })
         }
         Row(
             Modifier.fillMaxWidth().height(52.dp).clip(RoundedCornerShape(16.dp)).background(KeypadColors.Bg).padding(start = 14.dp),
@@ -366,6 +361,12 @@ fun KeyboardPanel(vm: KeypadViewModel, onClose: () -> Unit, modifier: Modifier =
             for ((label, usage) in listOf("Esc" to 0x29, "Tab" to 0x2B, "←" to 0x50, "↑" to 0x52, "↓" to 0x51, "→" to 0x4F)) {
                 Key(label, { vm.typeKey(usage, if (ctrl) ModifierKeys.CTRL else 0); ctrl = false }, Modifier.weight(1f), height = h, style = KeypadType.KeySmall)
             }
+        }
+        KeyRow {
+            Key(tr("Copiar", "Copy"), vm::copyOnPc, Modifier.weight(1f), height = h, style = KeypadType.KeySmall,
+                description = tr("Copia o que está selecionado no PC, e traz para o celular", "Copies what is selected on the PC, and brings it to the phone"))
+            Key(tr("Colar", "Paste"), vm::pasteOnPc, Modifier.weight(1f), height = h, style = KeypadType.KeySmall,
+                description = tr("Cola no PC o que você copiou no celular", "Pastes on the PC what you copied on the phone"))
         }
         KeyRow {
             Key("", { vm.typeKey(0x2A) }, Modifier.weight(1f), height = h, icon = Glyph.Backspace, description = tr("Apagar", "Backspace"))

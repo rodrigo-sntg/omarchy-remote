@@ -1,6 +1,7 @@
 package com.sandevsystems.omarchyremote.ui
 
 import android.annotation.SuppressLint
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -26,6 +27,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -41,7 +43,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.sandevsystems.omarchyremote.network.AgentsText
 import com.sandevsystems.omarchyremote.KeypadViewModel
+import com.sandevsystems.omarchyremote.input.TermActions
 import com.sandevsystems.omarchyremote.input.TermLinks
 import org.json.JSONObject
 
@@ -58,6 +62,7 @@ fun TerminalScreen(vm: KeypadViewModel, onAgents: () -> Unit) {
     var webView by remember { mutableStateOf<WebView?>(null) }
     var ctrl by remember { mutableStateOf(false) }
     var alt by remember { mutableStateOf(false) }
+    var herdrMenu by remember { mutableStateOf(false) }
     BackHandler { vm.closeTerminal() }
     DisposableEffect(Unit) {
         onDispose {
@@ -76,6 +81,14 @@ fun TerminalScreen(vm: KeypadViewModel, onAgents: () -> Unit) {
         syncModifiers()
     }
 
+    /** The phone's clipboard into the terminal (it has to be read while this app has focus). */
+    fun paste() {
+        val clip = context.getSystemService(ClipboardManager::class.java).primaryClip
+        val text = clip?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.coerceToText(context)?.toString().orEmpty()
+        if (text.isEmpty()) return vm.showMessage(tr("Nada copiado no celular.", "Nothing copied on the phone."))
+        webView?.evaluateJavascript("termPaste('${Base64.encodeToString(text.toByteArray(), Base64.NO_WRAP)}')", null)
+    }
+
     Column(Modifier.fillMaxSize().background(KeypadColors.Bg).safeDrawingPadding().imePadding()) {
         Row(
             Modifier.fillMaxWidth().height(KeypadDimens.StatusHeight).padding(horizontal = KeypadDimens.ScreenPadding),
@@ -84,7 +97,7 @@ fun TerminalScreen(vm: KeypadViewModel, onAgents: () -> Unit) {
             StatusDot(state)
             Text("Terminal", style = KeypadType.HostName, color = KeypadColors.Text, maxLines = 1)
             Text(statusTexts(state, true).first, style = KeypadType.Caption, color = KeypadColors.TextMute, maxLines = 1, modifier = Modifier.weight(1f))
-            val waiting = agents.count { it.status == "blocked" || it.status == "done" }
+            val waiting = agents.count(AgentsText::needsYou)
             // Agents: accent with the count when some need the person.
             Pressable(onAgents, Modifier.height(KeypadDimens.MinTouch), shape = KeypadShapes.Segment,
                 background = if (waiting > 0) KeypadColors.Attention.copy(alpha = 0.16f) else KeypadColors.Surface3,
@@ -172,7 +185,10 @@ fun TerminalScreen(vm: KeypadViewModel, onAgents: () -> Unit) {
                 Key("Tab", { key("tab") }, Modifier.weight(1f), height = h)
                 Key("Ctrl", { key("ctrl") }, Modifier.weight(1f), height = h, on = ctrl)
                 Key("Alt", { key("alt") }, Modifier.weight(1f), height = h, on = alt)
-                Key("Ctrl+␣", { key("prefix") }, Modifier.weight(1.3f), height = h, description = tr("Ctrl+Espaço, o atalho do herdr", "Ctrl+Space, herdr's shortcut key"))
+                Key(tr("Colar", "Paste"), ::paste, Modifier.weight(1.1f), height = h, style = KeypadType.KeySmall,
+                    description = tr("Cola aqui o que você copiou no celular", "Pastes here what you copied on the phone"))
+                Key("herdr", { herdrMenu = true }, Modifier.weight(1.2f), height = h, on = herdrMenu, style = KeypadType.KeySmall,
+                    description = tr("Painéis e abas do herdr: dividir, fechar, trocar", "herdr panes and tabs: split, close, switch"))
             }
             KeyRow {
                 Key(tr("Esquerda", "Left"), { key("left") }, Modifier.weight(1f), height = h, icon = Glyph.ArrowLeft)
@@ -188,6 +204,52 @@ fun TerminalScreen(vm: KeypadViewModel, onAgents: () -> Unit) {
                     }
                 }, Modifier.weight(1.3f), height = h, icon = Glyph.Keyboard)
             }
+        }
+    }
+    // The prefix as the person set it in herdr; Ctrl+Space (Omarchy's) from an older PC service.
+    if (herdrMenu) HerdrSheet(vm.termActions, onAction = vm::termAction,
+        onPrefix = { if ("prefix" in vm.termActions) vm.termAction("prefix") else key("prefix") }) { herdrMenu = false }
+}
+
+/**
+ * herdr's panes and tabs one tap away (the keys are the person's own, from the PC's herdr config).
+ * Moving between panes and tabs keeps the sheet open, to go on; the rest closes it.
+ */
+@Composable
+private fun HerdrSheet(offered: Set<String>, onAction: (String) -> Unit, onPrefix: () -> Unit, onDismiss: () -> Unit) {
+    val stay = setOf("cycle_pane_next", "focus_pane_left", "focus_pane_right", "focus_pane_up", "focus_pane_down", "previous_tab", "next_tab")
+    // Closing ends what runs there (an agent too): it takes a second tap, on the same key.
+    val closes = setOf("close_pane", "close_tab")
+    var confirming by remember { mutableStateOf<String?>(null) }
+    AppSheet("herdr", onDismiss, subtitle = tr("Com as teclas do seu herdr no PC", "With your herdr keys from the PC")) {
+        val groups = TermActions.groups(offered)
+        if (groups.isEmpty()) {
+            Text(tr("Atualize o serviço do PC para ter os atalhos do herdr aqui.", "Update the PC service to get herdr's shortcuts here."),
+                style = KeypadType.Body, color = KeypadColors.TextDim)
+        }
+        for (group in groups) {
+            Overline(group.title)
+            for (row in group.actions.chunked(3)) {
+                KeyRow {
+                    for (action in row) {
+                        val asking = confirming == action.id
+                        Key(if (asking) tr("Tocar de novo: fechar", "Tap again to close") else action.label, {
+                            if (action.id in closes && !asking) {
+                                confirming = action.id
+                            } else {
+                                confirming = null
+                                onAction(action.id)
+                                if (action.id !in stay) onDismiss()
+                            }
+                        }, Modifier.weight(1f), height = 48.dp, style = KeypadType.KeySmall, on = asking)
+                    }
+                    repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
+                }
+            }
+        }
+        KeyRow {
+            Key(tr("Tecla do herdr (prefixo)", "herdr key (prefix)"), { onPrefix(); onDismiss() }, Modifier.weight(1f), height = 44.dp, style = KeypadType.KeySmall,
+                description = tr("A tecla que vem antes dos atalhos do herdr; a próxima tecla que você digitar completa o atalho", "The key before herdr's shortcuts; the next key you type completes it"))
         }
     }
 }

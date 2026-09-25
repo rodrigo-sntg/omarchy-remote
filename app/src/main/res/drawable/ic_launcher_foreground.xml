@@ -1,0 +1,8 @@
+<!-- Omarchy Remote's mark (design/logo/omarchy-remote-B-celular.svg): Omarchy's maze with a phone inside. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp" android:viewportWidth="578.6" android:viewportHeight="578.6">
+    <group android:translateX="139.3" android:translateY="139.3">
+        <path android:fillColor="#C6F36B" android:pathData="M0,0h300v20h-300zM0,0h20v300h-20zM280,0h20v300h-20zM0,280h160v20h-160zM180,280h120v20h-120zM140,20h20v20h-20zM40,40h120v20h-120zM220,40h40v20h-40zM40,40h20v220h-20zM240,40h20v220h-20zM40,240h220v20h-220zM140,260h20v20h-20zM20,140h20v20h-20zM140,185h20v10h-20z" />
+        <path android:fillColor="#C6F36B" android:fillType="evenOdd" android:pathData="M128,75h44a28,28 0 0 1 28,28v94a28,28 0 0 1 -28,28h-44a28,28 0 0 1 -28,-28v-94a28,28 0 0 1 28,-28zM130,95h40a10,10 0 0 1 10,10v90a10,10 0 0 1 -10,10h-40a10,10 0 0 1 -10,-10v-90a10,10 0 0 1 10,-10z" />
+    </group>
+</vector>

@@ -173,3 +173,119 @@ def test_the_screen_with_its_colors_is_its_own_reply():
     assert reply[0]["type"] == "agent.screen" and reply[0]["id"] == "w1:p1"
     assert reply[0]["text"].endswith("\x1b[0m") and len(reply[0]["text"]) <= 60_000
     assert herdr.calls == [("read", "w1:p1", 60, True)]
+
+
+TASK = "87aa6636-950f-4a7b-9c68-5c35a87cc1b1"
+OPEN = "7a2a2b65-287a-4d90-809f-cc1033d25b36"
+
+
+class SessionsHerdr(FakeHerdr):
+    """herdr with one agent open (OPEN, run with --dangerously-skip-permissions) in workspace w5."""
+
+    async def panes(self):
+        return [{"pane_id": "w5:p3", "workspace_id": "w5", "agent": "claude", "cwd": self.cwd},
+                {"pane_id": "w6:p1", "workspace_id": "w6", "agent": None, "cwd": "/elsewhere"}]
+
+    async def processes(self, pane):
+        self.calls.append(("processes", pane))
+        return [{"argv": ["claude", "--dangerously-skip-permissions", "--resume", OPEN], "pid": 1}] if pane == "w5:p3" else []
+
+    async def create_tab(self, workspace, cwd, label, env=None):
+        self.calls.append(("tab", workspace, cwd, label, env))
+        return "w5:p9"
+
+    async def create_workspace(self, cwd, label, env=None):
+        self.calls.append(("workspace", cwd, label, env))
+        return "wX:p1"
+
+    async def run(self, pane, command):
+        self.calls.append(("run", pane, command))
+
+
+def two_sessions(home):
+    project = home / "studio/nf"
+    project.mkdir(parents=True)
+    for session_id, title in ((TASK, "TASK-12 invoices"), (OPEN, "TASK-7 reports")):
+        folder = home / ".claude-studio/projects" / str(project).replace("/", "-")
+        folder.mkdir(parents=True, exist_ok=True)
+        (folder / f"{session_id}.jsonl").write_text(
+            json.dumps({"type": "user", "cwd": str(project), "entrypoint": "cli", "message": {"content": "oi"}}) + "\n"
+            + json.dumps({"type": "ai-title", "aiTitle": title}) + "\n")
+    return project
+
+
+def test_the_recent_sessions_say_which_are_open_and_remember_their_options(tmp_path):
+    project = two_sessions(tmp_path)
+    herdr = SessionsHerdr()
+    herdr.cwd = str(project)
+    commands = AgentCommands(herdr, home=tmp_path)
+    reply = asyncio.run(commands.handle(Message("s", 1, "agent.sessions", {})))
+    items = {i["id"]: i for i in reply[0]["items"]}
+    assert reply[0]["type"] == "agent.sessions"
+    assert items[OPEN]["open"] is True and items[OPEN]["pane"] == "w5:p3"
+    assert items[TASK]["open"] is False and "pane" not in items[TASK]
+    assert items[TASK]["account"] == "studio" and items[TASK]["title"] == "TASK-12 invoices"
+    assert commands.remembered.flags(OPEN) == ["--dangerously-skip-permissions"]
+
+
+def test_reopening_a_closed_session_resumes_it_in_its_projects_workspace(tmp_path):
+    project = two_sessions(tmp_path)
+    herdr = SessionsHerdr()
+    herdr.cwd = str(project)
+    commands = AgentCommands(herdr, home=tmp_path)
+    commands.remembered.note(TASK, ["--dangerously-skip-permissions"])
+    reply = asyncio.run(commands.handle(Message("s", 2, "agent.resume", {"kind": "claude", "session": TASK})))
+    assert reply == [{"type": "ack", "seq": 2, "ok": True}, {"type": "agent.started", "id": "w5:p9"}]
+    assert ("tab", "w5", str(project), "TASK-12 invoices", {"CLAUDE_CONFIG_DIR": str(tmp_path / ".claude-studio")}) in herdr.calls
+    assert ("run", "w5:p9", f"claude --dangerously-skip-permissions --resume {TASK}") in herdr.calls
+
+
+def test_reopening_one_that_is_open_goes_to_it(tmp_path):
+    project = two_sessions(tmp_path)
+    herdr = SessionsHerdr()
+    herdr.cwd = str(project)
+    reply = asyncio.run(AgentCommands(herdr, home=tmp_path).handle(Message("s", 3, "agent.resume", {"kind": "claude", "session": OPEN})))
+    assert reply[-1] == {"type": "agent.started", "id": "w5:p3"}
+    assert not any(c[0] in ("tab", "run") for c in herdr.calls)
+
+
+def test_an_unknown_session_or_a_project_outside_home_is_refused(tmp_path):
+    herdr = SessionsHerdr()
+    herdr.cwd = "/x"
+    commands = AgentCommands(herdr, home=tmp_path)
+    reply = asyncio.run(commands.handle(Message("s", 4, "agent.resume", {"kind": "claude", "session": TASK})))
+    assert reply[0]["ok"] is False
+    folder = tmp_path / ".claude/projects/-etc"
+    folder.mkdir(parents=True)
+    (folder / f"{TASK}.jsonl").write_text(json.dumps({"type": "user", "cwd": "/etc", "message": {"content": "oi"}}) + "\n")
+    reply = asyncio.run(commands.handle(Message("s", 5, "agent.resume", {"kind": "claude", "session": TASK})))
+    assert reply[0]["ok"] is False
+    assert not any(c[0] in ("tab", "run", "workspace") for c in herdr.calls)
+
+
+def test_each_claude_agent_says_which_account_it_runs_in(tmp_path):
+    """~/.claude is the person's own (no account); ~/.claude-<name> is <name>'s."""
+    folder = tmp_path / ".claude-studio/projects/-home-u-app"
+    folder.mkdir(parents=True)
+    (folder / "856c1e70-0a17-485b-9553-e5f1a24ddb1f.jsonl").write_text("")
+    commands = AgentCommands(FakeHerdr(), home=tmp_path)
+    listed = asyncio.run(commands.with_subagents([
+        {"id": "w1:p1", "kind": "claude"}, {"id": "w1:p2", "kind": "claude"}, {"id": "w2:p1", "kind": "codex"}]))
+    assert listed[0]["account"] == "studio"
+    assert "account" not in listed[1] and "account" not in listed[2]
+
+
+def test_the_own_account_has_no_name(tmp_path):
+    claude_file(tmp_path, [said("oi")])
+    listed = asyncio.run(AgentCommands(FakeHerdr(), home=tmp_path).with_subagents([{"id": "w1:p1", "kind": "claude"}]))
+    assert "account" not in listed[0]
+
+
+def test_each_agent_says_when_it_last_did_something(tmp_path):
+    """The session file's last write: the phone lists the most recently active first."""
+    import os
+    f = claude_file(tmp_path, [said("oi")])
+    os.utime(f, (1_790_000_000, 1_790_000_000))
+    listed = asyncio.run(AgentCommands(FakeHerdr(), home=tmp_path).with_subagents([{"id": "w1:p1", "kind": "claude"}, {"id": "w1:p2", "kind": "claude"}]))
+    assert listed[0]["active"] == 1_790_000_000
+    assert "active" not in listed[1]  # no session file known

@@ -28,6 +28,10 @@ data class Agent(
     val id: String, val kind: String, val status: String, val title: String, val workspace: String, val cwd: String, val seq: Int,
     /** Subagents it launched that are running now (Claude Code; the PC counts them). */
     val subagents: Int = 0,
+    /** Which account it runs in (Accounts): "" is the person's own. */
+    val account: String = "",
+    /** When it last did something (epoch seconds; its session file's last write), 0 if unknown. */
+    val active: Long = 0,
 )
 
 /** An agent's project in git: the branch, what changed, the last commits, ahead/behind its upstream. */
@@ -87,6 +91,7 @@ class NetworkSession(
     private val onControls: (Controls) -> Unit = {},
     /** Where an agent can be started ([listProjects]), and the pane of one that started ([startAgent]). */
     private val onProjects: (List<Project>) -> Unit = {},
+    private val onSessions: (List<RecentSession>) -> Unit = {},
     private val onAgentStarted: (String) -> Unit = {},
     /** The subagents an agent launched, as asked with [agentSubagents]. */
     private val onAgentSubagents: (String, List<Subagent>) -> Unit = { _, _ -> },
@@ -186,6 +191,7 @@ class NetworkSession(
                 }
             }.orEmpty())
             "agent.started" -> onAgentStarted(message.getString("id"))
+            "agent.sessions" -> onSessions(RecentSessions.parse(message.optJSONArray("items")))
             "agent.subagents" -> onAgentSubagents(message.getString("id"), message.optJSONArray("items")?.let { a ->
                 List(a.length()) { i ->
                     val o = a.getJSONObject(i)
@@ -426,6 +432,15 @@ class NetworkSession(
         message("projects.list", JSONObject())
     }
 
+    /** The agents' recent sessions, open and closed (RecentSessions). */
+    fun listSessions() {
+        message("agent.sessions", JSONObject())
+    }
+
+    /** A closed session running again in a new herdr tab: true once it is (its pane comes as agent.started). */
+    suspend fun resumeSession(kind: String, id: String): Boolean =
+        acked("agent.resume", JSONObject().put("kind", kind).put("session", id), START_TIMEOUT_MS)
+
     /** A new agent of [kind] in the project at [cwd], with [prompt] as its task: true once it is ready. */
     suspend fun startAgent(cwd: String, kind: String, prompt: String): Boolean =
         acked("agent.start", JSONObject().put("cwd", cwd).put("kind", kind).put("prompt", prompt), START_TIMEOUT_MS)
@@ -459,6 +474,7 @@ class NetworkSession(
     private fun agentFrom(a: JSONObject) = Agent(
         a.getString("id"), a.optString("kind"), a.optString("status", "unknown"), a.optString("title"),
         a.optString("workspace"), a.optString("cwd"), a.optInt("seq"), a.optInt("subagents"),
+        a.optString("account"), a.optLong("active"),
     )
 
     fun goToWorkspace(id: Int) {

@@ -11,6 +11,13 @@ import android.view.KeyEvent
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
+import androidx.activity.compose.LocalActivity
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import com.sandevsystems.omarchyremote.input.TypingDiff
 
 /**
@@ -88,4 +95,31 @@ class LiveTypingField(context: Context, private val onChange: (TypingDiff.Change
     private companion object {
         const val SENTINEL = "​"
     }
+}
+
+/**
+ * Puts the phone keyboard away for real. Taking the field off the screen is not enough: Android
+ * keeps the keyboard up over whatever comes next. Asked of the window, so it works even after the
+ * field is gone.
+ */
+@Composable
+fun rememberHideKeyboard(): () -> Unit {
+    val activity = LocalActivity.current
+    val view = LocalView.current
+    return remember(activity, view) {
+        {
+            val window = activity?.window
+            if (window != null) WindowCompat.getInsetsController(window, window.decorView).hide(WindowInsetsCompat.Type.ime())
+            view.context.getSystemService(InputMethodManager::class.java)
+                ?.hideSoftInputFromWindow((window?.decorView ?: view).windowToken, 0)
+            window?.currentFocus?.clearFocus()
+        }
+    }
+}
+
+/** The keyboard goes away with this panel, however it closes (Fechar, back, a tap outside). */
+@Composable
+fun HideKeyboardOnLeave() {
+    val hide = rememberHideKeyboard()
+    DisposableEffect(hide) { onDispose { hide() } }
 }

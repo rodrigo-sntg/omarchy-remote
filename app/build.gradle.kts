@@ -15,8 +15,8 @@ android {
         applicationId = "com.sandevsystems.omarchyremote"
         minSdk = 28
         targetSdk = 36
-        versionCode = 2
-        versionName = "0.1.1"
+        versionCode = 3
+        versionName = "0.1.2"
         // Real phones only (S24, S10e): the OCR library ships ~11 MB of native code per architecture.
         ndk { abiFilters += "arm64-v8a" }
     }

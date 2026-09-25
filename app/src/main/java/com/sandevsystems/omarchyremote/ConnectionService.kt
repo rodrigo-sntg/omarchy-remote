@@ -80,7 +80,7 @@ class ConnectionService : Service() {
                 context, 0, Intent(context, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
             )
             return NotificationCompat.Builder(context, CHANNEL)
-                .setSmallIcon(R.drawable.ic_keypad)
+                .setSmallIcon(R.drawable.ic_stat_remote)
                 .setContentTitle("Omarchy Remote")
                 .setContentText(text)
                 .setOngoing(true)

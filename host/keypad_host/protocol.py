@@ -167,6 +167,16 @@ def _cwd(payload: dict) -> str:
     return value
 
 
+_UUID = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
+
+
+def _session_uuid(payload: dict) -> str:
+    value = payload.get("session")
+    if not isinstance(value, str) or not _UUID.fullmatch(value):
+        raise ProtocolError("invalid session")
+    return value
+
+
 def _kind(payload: dict) -> str:
     value = payload.get("kind")
     if value not in ("claude", "codex"):
@@ -258,6 +268,8 @@ _PAYLOADS = {
     "agent.gitdiff": lambda p: {"id": _target(p), "path": _text_field(p, "path", 500)},
     "agent.start": lambda p: {"cwd": _cwd(p), "kind": _kind(p), "prompt": _optional_prompt({"text": p.get("prompt")})},
     "projects.list": lambda p: {},
+    "agent.sessions": lambda p: {},
+    "agent.resume": lambda p: {"kind": _kind(p), "session": _session_uuid(p)},
     "controls.get": lambda p: {},
     "host.get": lambda p: {},
     "stats.get": lambda p: {},

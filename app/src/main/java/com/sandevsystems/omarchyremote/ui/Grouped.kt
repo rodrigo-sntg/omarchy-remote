@@ -1,5 +1,13 @@
 package com.sandevsystems.omarchyremote.ui
 
+import com.sandevsystems.omarchyremote.network.Accounts
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -98,10 +106,14 @@ fun GroupDivider(start: Dp = 16.dp) {
 fun GroupRow(
     title: String, subtitle: String?, onClick: () -> Unit, icon: ImageVector? = null, minHeight: Dp = 60.dp,
     subtitleColor: Color = KeypadColors.TextDim, trailing: (@Composable () -> Unit)? = null,
+    /** An account other than the person's own: a thin bar in its color on the left, its name before the subtitle. */
+    account: String = "",
 ) {
     val view = LocalView.current
+    val mark = accountColor(account)
     Row(
         Modifier.fillMaxWidth().heightIn(min = minHeight).clickable(onClickLabel = title) { Haptic.tap(view); onClick() }
+            .then(if (mark != null) Modifier.accountBar(mark) else Modifier)
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -112,7 +124,13 @@ fun GroupRow(
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
             Text(title, style = GroupType.Title, color = KeypadColors.Text, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            if (subtitle != null) Text(subtitle, style = GroupType.Sub, color = subtitleColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            if (subtitle != null || mark != null) Text(buildAnnotatedString {
+                if (mark != null) {
+                    withStyle(SpanStyle(color = mark, fontWeight = FontWeight.SemiBold)) { append(account.trim()) }
+                    if (subtitle != null) append(" · ")
+                }
+                if (subtitle != null) append(subtitle)
+            }, style = GroupType.Sub, color = subtitleColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         if (trailing != null) trailing() else Icon(Glyph.ChevronRight, null, Modifier.size(16.dp), tint = KeypadColors.TextMute)
     }
@@ -147,4 +165,29 @@ fun CircleButton(icon: ImageVector, description: String, onClick: () -> Unit, mo
             .clickable(onClickLabel = description) { Haptic.tap(view); onClick() }.semantics { contentDescription = description },
         contentAlignment = Alignment.Center,
     ) { Icon(icon, null, Modifier.size(20.dp), tint = KeypadColors.Text) }
+}
+
+
+/**
+ * The color of an account other than the person's own (Accounts), or null for their own: soft
+ * hues that read on dark and light themes, none of them the theme's accent or a status color.
+ */
+@Composable
+fun accountColor(account: String): Color? {
+    val slot = Accounts.slot(account) ?: return null
+    val dark = !KeypadColors.Light
+    return when (slot) {
+        0 -> if (dark) Color(0xFF7FC8F8) else Color(0xFF1F6FA8)  // sky
+        1 -> if (dark) Color(0xFFC3A6F7) else Color(0xFF6B47B8)  // violet
+        2 -> if (dark) Color(0xFFF2B880) else Color(0xFFA35A12)  // amber
+        3 -> if (dark) Color(0xFFF5A3C0) else Color(0xFFB0336A)  // rose
+        else -> if (dark) Color(0xFF8FD9C4) else Color(0xFF1E7D66)  // teal
+    }
+}
+
+/** A 3 dp bar of [color] along the left edge, inset from the corners. */
+fun Modifier.accountBar(color: Color): Modifier = drawBehind {
+    val w = 3.dp.toPx()
+    val inset = 10.dp.toPx()
+    drawRoundRect(color, topLeft = Offset(0f, inset), size = Size(w, size.height - 2 * inset), cornerRadius = CornerRadius(w / 2))
 }

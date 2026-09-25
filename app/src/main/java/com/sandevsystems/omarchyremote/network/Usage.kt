@@ -12,6 +12,8 @@ data class UsageMetric(val kind: String, val label: String, val percent: Int, va
 data class UsageProvider(
     val id: String, val name: String, val plan: String, val stale: Boolean, val error: String?, val resets: Int,
     val metrics: List<UsageMetric>,
+    /** A Claude account other than the person's own (Accounts), "" for theirs. */
+    val account: String = "",
 )
 
 /** The PC's AI plans (host/keypad_host/usage.py). [hidden]: providers with nothing to show. */
@@ -34,6 +36,7 @@ data class UsageState(val available: Boolean, val providers: List<UsageProvider>
                     UsageProvider(
                         p.optString("id"), p.optString("name"), p.optString("plan"), p.optBoolean("stale"),
                         if (p.isNull("error")) null else p.optString("error").ifEmpty { null }, p.optInt("resets"), metrics,
+                        p.optString("account"),
                     )
                 }
             }.orEmpty()

@@ -1,6 +1,6 @@
 import json
 
-from keypad_host.transcript import find, full_output, items_of, read_back, read_forward
+from keypad_host.transcript import OUTPUT_LIMIT, find, full_output, items_of, read_back, read_forward
 
 
 def claude(type_, content, **extra):
@@ -51,8 +51,8 @@ def test_tool_targets_are_what_a_person_recognizes():
 
 
 def test_long_texts_are_cut_and_say_so():
-    out = items_of(claude("user", [{"type": "tool_result", "tool_use_id": "t", "content": [{"type": "text", "text": "x" * 5000}]}]), "claude")[0]
-    assert out["cut"] is True and len(out["t"]) <= 1500
+    out = items_of(claude("user", [{"type": "tool_result", "tool_use_id": "t", "content": [{"type": "text", "text": "x" * (OUTPUT_LIMIT + 1)}]}]), "claude")[0]
+    assert out["cut"] is True and len(out["t"]) <= OUTPUT_LIMIT
 
 
 def test_codexs_entries_become_chat_items():
@@ -128,13 +128,21 @@ def test_new_lines_are_read_from_where_it_stopped_and_a_half_line_waits(tmp_path
 
 def test_an_output_is_fetched_whole_by_its_line(tmp_path):
     f = tmp_path / "s.jsonl"
-    write(f, [claude("user", "x"), claude("user", [{"type": "tool_result", "tool_use_id": "t9", "content": "y" * 4000}])])
+    write(f, [claude("user", "x"), claude("user", [{"type": "tool_result", "tool_use_id": "t9", "content": "y" * (OUTPUT_LIMIT + 500)}])])
     page = read_back(f, "claude", None, 5)
     out = next(i for i in page["items"] if i["k"] == "out")
     assert out["cut"] is True and "at" in out
-    assert full_output(f, "claude", out["at"], "t9") == "y" * 4000
+    assert full_output(f, "claude", out["at"], "t9") == "y" * (OUTPUT_LIMIT + 500)
     assert full_output(f, "claude", out["at"], "other") is None
     assert full_output(f, "claude", 10 ** 9, "t9") is None
+
+
+def test_a_session_in_another_claude_config_dir_is_found(tmp_path):
+    """CLAUDE_CONFIG_DIR=~/.claude-work keeps a second account's sessions apart."""
+    (tmp_path / ".claude-work/projects/-home-u-app").mkdir(parents=True)
+    c = tmp_path / ".claude-work/projects/-home-u-app/7a2a2b65-287a-4d90-809f-cc1033d25b36.jsonl"
+    c.write_text("")
+    assert find("claude", "7a2a2b65-287a-4d90-809f-cc1033d25b36", tmp_path) == c
 
 
 def test_the_session_file_is_found_by_its_id(tmp_path):

@@ -3,7 +3,10 @@ command prints JSON ({"id", "result"} or {"error": {"code", "message"}}) with ex
 `agent read --format text`, which prints the terminal text itself."""
 import asyncio
 import json
+import os
+import re
 import shutil
+from pathlib import Path
 
 
 class HerdrError(Exception):
@@ -13,9 +16,10 @@ class HerdrError(Exception):
 
 
 class Herdr:
-    def __init__(self, binary: str = "herdr", timeout: float = 5.0):
+    def __init__(self, binary: str = "herdr", timeout: float = 5.0, home=None):
         self.binary = binary
         self.timeout = timeout
+        self.home = home
 
     async def _output(self, *args, timeout: float | None = None) -> str:
         if shutil.which(self.binary) is None:
@@ -95,21 +99,43 @@ class Herdr:
         """(agent, session id) of the CLI running in the pane, as herdr detected it; None if unknown."""
         info = (await self._run("agent", "get", target)).get("agent") or {}
         session = info.get("agent_session") or {}
-        if session.get("kind") != "id" or not isinstance(session.get("value"), str):
+        if session.get("kind") == "id" and isinstance(session.get("value"), str):
+            return str(session.get("agent") or info.get("agent") or ""), session["value"]
+        # herdr didn't identify it (started before its hooks, another config dir): the command line
+        # it was resumed with says which session it is.
+        pane = info.get("pane_id")
+        if not isinstance(pane, str):
             return None
-        return str(session.get("agent") or info.get("agent") or ""), session["value"]
+        for process in await self.processes(pane):
+            found = await asyncio.to_thread(running_session, process, self.home or os.path.expanduser("~"))
+            if found is not None:
+                return found
+        return None
 
     async def panes(self) -> list[dict]:
         return list((await self._run("pane", "list")).get("panes", []))
 
-    async def create_tab(self, workspace: str, cwd: str, label: str) -> str:
+    async def processes(self, pane: str) -> list[dict]:
+        """What runs in the pane's foreground (argv, pid)."""
+        info = (await self._run("pane", "process-info", "--pane", pane)).get("process_info") or {}
+        return [p for p in info.get("foreground_processes") or [] if isinstance(p, dict)]
+
+    @staticmethod
+    def _env(env: dict | None) -> list[str]:
+        return [a for k, v in (env or {}).items() for a in ("--env", f"{k}={v}")]
+
+    async def create_tab(self, workspace: str, cwd: str, label: str, env: dict | None = None) -> str:
         """A new tab in [workspace] at [cwd], not focused; its first pane's id."""
-        result = await self._run("tab", "create", "--workspace", workspace, "--cwd", cwd, "--label", label, "--no-focus")
+        result = await self._run("tab", "create", "--workspace", workspace, "--cwd", cwd, "--label", label, *self._env(env), "--no-focus")
         return result["root_pane"]["pane_id"]
 
-    async def create_workspace(self, cwd: str, label: str) -> str:
-        result = await self._run("workspace", "create", "--cwd", cwd, "--label", label, "--no-focus")
+    async def create_workspace(self, cwd: str, label: str, env: dict | None = None) -> str:
+        result = await self._run("workspace", "create", "--cwd", cwd, "--label", label, *self._env(env), "--no-focus")
         return result["root_pane"]["pane_id"]
+
+    async def run(self, pane: str, command: str) -> None:
+        """Types [command] into the pane's shell and runs it."""
+        await self._run("pane", "run", pane, command)
 
     async def start_agent(self, name: str, kind: str, pane: str) -> None:
         """Starts the agent in the pane and returns once it is ready for input (herdr waits up to 60 s)."""
@@ -127,3 +153,38 @@ class Herdr:
 
     async def focus(self, target: str) -> dict:
         return await self._run("agent", "focus", target)
+
+
+_UUID = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
+
+
+def resumed_session(argv: list) -> tuple[str, str] | None:
+    """(agent, session id) from `claude --resume <id>` / `--session-id <id>` or `codex resume <id>`."""
+    if not argv or not all(isinstance(a, str) for a in argv):
+        return None
+    kind = os.path.basename(argv[0])
+    if kind == "claude":
+        flags = ("--resume", "-r", "--session-id")
+        ids = [argv[i + 1] for i, a in enumerate(argv[:-1]) if a in flags]
+    elif kind == "codex":
+        ids = [argv[i + 1] for i, a in enumerate(argv[:-1]) if a == "resume"]
+    else:
+        return None
+    ids = [i for i in ids if _UUID.fullmatch(i)]
+    return (kind, ids[-1]) if ids else None
+
+
+def running_session(process: dict, home) -> tuple[str, str] | None:
+    """The session a foreground process is in: Claude Code's own record of it
+    (<config dir>/sessions/<pid>.json, current after a /clear too), else its --resume argument."""
+    argv = process.get("argv") or []
+    pid = process.get("pid")
+    if argv and os.path.basename(str(argv[0])) == "claude" and type(pid) is int and pid > 0:
+        for record in sorted(Path(home).glob(f".claude*/sessions/{pid}.json")):
+            try:
+                session_id = json.loads(record.read_text()).get("sessionId")
+            except (OSError, ValueError, AttributeError):
+                continue
+            if isinstance(session_id, str) and _UUID.fullmatch(session_id):
+                return "claude", session_id
+    return resumed_session(argv)

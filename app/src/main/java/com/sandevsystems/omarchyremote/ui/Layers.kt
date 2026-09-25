@@ -174,6 +174,7 @@ fun TextLayer(vm: KeypadViewModel, capsLock: Boolean, enabled: Boolean, onClose:
         focus.requestFocus()
         keyboard?.show()
     }
+    HideKeyboardOnLeave()
     Column(
         modifier.fillMaxWidth().imePadding().clip(KeypadShapes.Layer).background(KeypadColors.Surface2)
             .border(1.dp, KeypadColors.Line, KeypadShapes.Layer).padding(start = 14.dp, end = 14.dp, top = 8.dp, bottom = 16.dp),

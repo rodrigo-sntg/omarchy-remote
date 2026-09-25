@@ -86,6 +86,9 @@ class NetworkController(private val scope: CoroutineScope) {
     private val _projects = MutableStateFlow<List<Project>>(emptyList())
     /** Where an agent can be started (herdr's open projects, then Claude's recent ones). */
     val projects: StateFlow<List<Project>> = _projects.asStateFlow()
+    private val _sessions = MutableStateFlow<List<RecentSession>>(emptyList())
+    /** The agents' recent sessions (to reopen a closed one). */
+    val sessions: StateFlow<List<RecentSession>> = _sessions.asStateFlow()
     private val _agentStarted = MutableSharedFlow<String>(extraBufferCapacity = 4)
     /** The pane of an agent that just started. */
     val agentStarted: SharedFlow<String> = _agentStarted.asSharedFlow()
@@ -197,6 +200,7 @@ class NetworkController(private val scope: CoroutineScope) {
             onFiles = { f -> main.post { _files.value = f } },
             onControls = { c -> main.post { _controls.value = c } },
             onProjects = { list -> main.post { _projects.value = list } },
+            onSessions = { list -> main.post { _sessions.value = list } },
             onAgentStarted = { id -> main.post { _agentStarted.tryEmit(id) } },
             onAgentSubagents = { id, items -> main.post { _agentSubagents.value = id to items } },
             onAgentScreen = { id, text -> main.post { _agentScreen.value = id to text } },
@@ -337,6 +341,12 @@ class NetworkController(private val scope: CoroutineScope) {
     fun listProjects() {
         input?.listProjects()
     }
+
+    fun listSessions() {
+        input?.listSessions()
+    }
+
+    suspend fun resumeSession(kind: String, id: String) = input?.resumeSession(kind, id) ?: false
 
     fun controlsGet() {
         input?.controlsGet()

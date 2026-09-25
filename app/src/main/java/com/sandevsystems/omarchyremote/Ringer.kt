@@ -89,7 +89,7 @@ object Ringer {
         }
         val stop = PendingIntent.getBroadcast(app, 0, Intent(app, StopRinging::class.java), PendingIntent.FLAG_IMMUTABLE)
         val open = PendingIntent.getActivity(app, 1, Intent(app, RingActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), PendingIntent.FLAG_IMMUTABLE)
-        val n = NotificationCompat.Builder(app, CHANNEL).setSmallIcon(R.drawable.ic_keypad)
+        val n = NotificationCompat.Builder(app, CHANNEL).setSmallIcon(R.drawable.ic_stat_remote)
             .setContentTitle(tr("O PC está procurando este celular", "Your PC is looking for this phone"))
             .setContentText(tr("Toque em Parar para silenciar.", "Tap Stop to silence it."))
             .setCategory(NotificationCompat.CATEGORY_ALARM).setPriority(NotificationCompat.PRIORITY_MAX)

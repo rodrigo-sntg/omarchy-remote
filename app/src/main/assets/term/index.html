@@ -168,6 +168,8 @@
     document.body.style.background = theme.background;
   };
   window.termFocus = () => term.focus();
+  // The phone's clipboard, pasted as a terminal pastes (bracketed when the program asked for it).
+  window.termPaste = b64 => term.paste(new TextDecoder().decode(fromBase64(b64)));
   window.termFontSize = px => { term.options.fontSize = px; refit(); };
 
   document.fonts.load('13px "JetBrainsMono NF"').finally(() => { fontReady = true; refit(); });

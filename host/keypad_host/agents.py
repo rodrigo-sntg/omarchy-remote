@@ -8,7 +8,8 @@ import secrets
 from pathlib import Path
 
 from .agent_commands import commands_for
-from .herdr import HerdrError
+from .herdr import HerdrError, running_session
+from .sessions import LIMIT, account_of, Remembered, config_dir_of, describe, kept_flags, recent, resume_command
 from .git_view import file_diff, git_summary
 from .projects import projects
 from .subagents import running as running_subagents
@@ -70,15 +71,72 @@ class AgentCommands:
         self.herdr = herdr
         self.home = home
         self._files = {}  # pane -> (when resolved, (kind, session file) or None)
+        home_dir = Path(home) if home else Path.home()
+        self.remembered = Remembered(home_dir / ".local/state/omarchy-remote/sessions.json")
+        self._observing = None
+
+    async def _observe_quietly(self):
+        try:
+            await self.observe()
+        except Exception as error:  # a background look: never takes the agent list down
+            log.debug("observing the sessions: %s", error)
+        finally:
+            self._observing = None
+
+    async def observe(self) -> dict[str, str]:
+        """The sessions running in herdr now ({session id: pane}); each one's options are remembered,
+        so reopening it later (after a tab closed by mistake) runs it the same way."""
+        home = self.home or os.path.expanduser("~")
+        running = {}
+        for pane in await self.herdr.panes():
+            if not pane.get("agent") or not isinstance(pane.get("pane_id"), str):
+                continue
+            try:
+                processes = await self.herdr.processes(pane["pane_id"])
+            except HerdrError:
+                continue
+            for process in processes:
+                found = await asyncio.to_thread(running_session, process, home)
+                if found is not None:
+                    running[found[1]] = pane["pane_id"]
+                    self.remembered.note(found[1], kept_flags(found[0], process.get("argv") or []))
+                    break
+        return running
+
+    async def resume(self, kind: str, session_id: str) -> str:
+        """The session running again: its pane if it is open, else a new tab in its project's workspace
+        running `claude --resume` (or `codex resume`) with the options it last had. The pane's id."""
+        running = await self.observe()
+        if session_id in running:
+            return running[session_id]
+        home = Path(self.home) if self.home else Path.home()
+        path = await asyncio.to_thread(find, kind, session_id, home)
+        about = await asyncio.to_thread(describe, path, kind) if path else None
+        if about is None:
+            raise HerdrError("no_session", "Essa sessão não existe mais no PC.")
+        real = os.path.realpath(about["cwd"])
+        if not os.path.isdir(real) or not real.startswith(str(home) + os.sep):
+            raise HerdrError("invalid_cwd", "A pasta dessa sessão não existe mais no seu usuário do PC.")
+        config = config_dir_of(path, home) if kind == "claude" else None
+        env = {"CLAUDE_CONFIG_DIR": config} if config else None
+        label = about["title"][:32].lstrip("-") or tab_label(real)
+        workspace = next((p.get("workspace_id") for p in await self.herdr.panes() if p.get("cwd") == real and p.get("workspace_id")), None)
+        pane = await self.herdr.create_tab(workspace, real, label, env) if workspace else await self.herdr.create_workspace(real, label, env)
+        await self.herdr.run(pane, resume_command(kind, session_id, self.remembered.flags(session_id)))
+        return pane
 
     async def with_subagents(self, agents: list[dict], ttl: float = 30.0) -> list[dict]:
         """The list with each Claude agent's running subagents counted (which session a pane runs is
         asked of herdr at most every [ttl] seconds)."""
         import time as _time
         now = _time.monotonic()
+        # Once a minute, what runs where (and with which options), for reopening a closed session.
+        if now - getattr(self, "_observed", -1e9) > 60 and self._observing is None:
+            self._observed = now
+            self._observing = asyncio.create_task(self._observe_quietly())
         out = []
         for agent in agents:
-            if agent.get("kind") != "claude":
+            if agent.get("kind") not in ("claude", "codex"):
                 out.append(agent)
                 continue
             cached = self._files.get(agent["id"])
@@ -86,8 +144,19 @@ class AgentCommands:
                 cached = (now, await self.transcript(agent["id"]))
                 self._files[agent["id"]] = cached
             found = cached[1]
-            count = await asyncio.to_thread(running_subagents, found[1]) if found else 0
-            out.append({**agent, "subagents": count} if found else agent)
+            if not found:
+                out.append(agent)
+                continue
+            try:
+                active = {"active": int(found[1].stat().st_mtime)}  # its last write: the list's order
+            except OSError:
+                active = {}
+            if agent.get("kind") != "claude":
+                out.append({**agent, **active})
+                continue
+            count = await asyncio.to_thread(running_subagents, found[1])
+            account = account_of(found[1])
+            out.append({**agent, "subagents": count, **active, **({"account": account} if account else {})})
         return out
 
     async def transcript(self, target: str):
@@ -119,6 +188,14 @@ class AgentCommands:
         return pane
 
     async def handle(self, message) -> list[dict]:
+        if message.type == "agent.sessions":
+            try:
+                running = await self.observe()
+            except HerdrError:
+                running = {}
+            home = self.home or os.path.expanduser("~")
+            items = await asyncio.to_thread(recent, home, LIMIT, set(running))
+            return [{"type": "agent.sessions", "items": [{**i, "pane": running[i["id"]]} if i["id"] in running else i for i in items]}]
         if message.type == "projects.list":
             try:
                 panes = await self.herdr.panes()
@@ -136,6 +213,9 @@ class AgentCommands:
                     return [{"type": "agent.history", "id": p["id"], "none": True}]
                 page = await asyncio.to_thread(read_back, found[1], found[0], p["before"], p["limit"])
                 return [{"type": "agent.history", "id": p["id"], **page}]
+            if message.type == "agent.resume":
+                pane = await self.resume(p["kind"], p["session"])
+                return [{"type": "ack", "seq": message.seq, "ok": True}, {"type": "agent.started", "id": pane}]
             if message.type == "agent.start":
                 pane = await self.start(p["cwd"], p["kind"], p["prompt"])
                 return [{"type": "ack", "seq": message.seq, "ok": True}, {"type": "agent.started", "id": pane}]
