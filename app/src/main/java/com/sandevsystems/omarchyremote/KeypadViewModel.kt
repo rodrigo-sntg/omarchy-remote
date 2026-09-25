@@ -1095,6 +1095,31 @@ class KeypadViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    /** Agents talking to each other (Mandar para…, reviews), and the notices waiting. */
+    val agentLinks: StateFlow<com.sandevsystems.omarchyremote.network.AgentLinks> = network.links
+
+    /** [text] (something [from] said) to the agent [to], with the person's [note] above it. */
+    fun relayAgent(from: String, to: String, text: String, note: String?, toName: String, done: (Boolean) -> Unit = {}) {
+        viewModelScope.launch {
+            val ok = network.relayAgent(from, to, text, note?.takeIf { it.isNotBlank() })
+            // A refusal comes with its reason (the ack's error); a silence says so here.
+            if (ok) showMessage(tr("Enviado ao $toName.", "Sent to $toName."))
+            else if (message == null) showMessage(tr("Não foi enviado ao $toName.", "It wasn't sent to $toName."))
+            done(ok)
+        }
+    }
+
+    /** [reviewer] ("claude" or "codex") of the same project reviews [agent]'s changes. */
+    fun requestReview(agent: String, reviewer: String) {
+        viewModelScope.launch {
+            val name = com.sandevsystems.omarchyremote.network.AgentsText.kindName(reviewer)
+            if (network.requestReview(agent, reviewer, if (com.sandevsystems.omarchyremote.ui.I18n.lang == com.sandevsystems.omarchyremote.ui.I18n.Lang.PT) "pt" else "en"))
+                showMessage(tr("O $name está revisando. A revisão aparece aqui quando ficar pronta.", "$name is reviewing. The review shows up here when it's ready."))
+        }
+    }
+
+    fun dismissNotice(id: String) = network.dismissNotice(id)
+
     /** The agents' recent sessions; a closed one can be reopened. */
     val sessions: StateFlow<List<com.sandevsystems.omarchyremote.network.RecentSession>> = network.sessions
 

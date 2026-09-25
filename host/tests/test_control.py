@@ -144,3 +144,25 @@ def test_devices_can_be_listed_revoked_and_the_code_renewed(tmp_path):
     # a new code: every phone must pair again, so the one connected is dropped too
     assert run(handle_command({"cmd": "new-code"}, hub)) == {"ok": True}
     assert hub.renewed == 1 and hub.kicked == 2
+
+
+def test_an_agent_asks_another_through_the_control_socket():
+    from keypad_host.links import LinkError
+
+    class Links:
+        async def ask(self, origin, target, question, timeout, cwd=None):
+            if target == "claude" and origin == "w9:p1":
+                raise LinkError("Quem está respondendo a uma pergunta não pode perguntar a outro agente.")
+            return {"ok": True, "agent": "w9:p1", "text": f"{origin}|{target}|{question}|{timeout}|{cwd}"}
+
+    hub = FakeHub()
+    hub.links = Links()
+    ok = run(handle_command({"cmd": "ask", "from": "w9:p2", "target": "codex", "question": "q?", "timeout": 30, "cwd": "/home/u/app"}, hub))
+    assert ok == {"ok": True, "agent": "w9:p1", "text": "w9:p2|codex|q?|30|/home/u/app"}
+    plain = run(handle_command({"cmd": "ask", "target": "w9:p1", "question": "q?"}, hub))
+    assert plain["text"] == "None|w9:p1|q?|600|None"   # from a plain terminal, default wait
+    refused = run(handle_command({"cmd": "ask", "from": "w9:p1", "target": "claude", "question": "q?"}, hub))
+    assert refused == {"ok": False, "error": "Quem está respondendo a uma pergunta não pode perguntar a outro agente."}
+    for bad in ({"target": "../x", "question": "q"}, {"target": "codex", "question": ""}, {"target": "codex", "question": "q", "from": "w9;x"},
+                {"target": "codex", "question": "q", "timeout": 99999}, {"target": "codex", "question": "q", "cwd": "relative"}):
+        assert run(handle_command({"cmd": "ask", **bad}, hub))["ok"] is False

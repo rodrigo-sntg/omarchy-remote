@@ -8,6 +8,9 @@ import socket
 import struct
 from urllib.parse import urlencode
 
+from .links import ASK_TIMEOUT, KINDS, LinkError
+from .protocol import AGENT_TARGET
+
 CLIPBOARD_LIMIT = 64 * 1024
 # One request line: 64 KB of text can grow to 6x once JSON-escaped (\uXXXX).
 LINE_LIMIT = 8 * CLIPBOARD_LIMIT
@@ -70,6 +73,8 @@ async def handle_command(cmd, hub) -> dict:
             hub.rotate_token()
             hub.kick()
             return {"ok": True}
+        case "ask":
+            return await _ask(cmd, hub)
         case "theme":
             await hub.push_theme()
             return {"ok": True}
@@ -78,6 +83,29 @@ async def handle_command(cmd, hub) -> dict:
                 return {"ok": False, "error": "Tema desconhecido ou nenhum celular conectado."}
             return {"ok": True}
     return {"ok": False, "error": "Comando desconhecido."}
+
+
+async def _ask(cmd: dict, hub) -> dict:
+    """omarchy-remote ask: one agent asks another and waits for its answer (links.py)."""
+    links = getattr(hub, "links", None)
+    if links is None:
+        return {"ok": False, "error": "O herdr não está disponível para o serviço."}
+    target, question, origin = cmd.get("target"), cmd.get("question"), cmd.get("from")
+    timeout, cwd = cmd.get("timeout", ASK_TIMEOUT), cmd.get("cwd")
+    if not isinstance(target, str) or not (target in KINDS or AGENT_TARGET.fullmatch(target)):
+        return {"ok": False, "error": "Para quem? claude, codex ou o painel do agente (ex.: w9:p1)."}
+    if not isinstance(question, str) or not question.strip() or len(question) > 20_000:
+        return {"ok": False, "error": "Pergunta vazia ou longa demais."}
+    if origin is not None and not (isinstance(origin, str) and AGENT_TARGET.fullmatch(origin)):
+        return {"ok": False, "error": "Agente de origem inválido."}
+    if type(timeout) is not int or not 5 <= timeout <= 1800:
+        return {"ok": False, "error": "Espera entre 5 e 1800 segundos."}
+    if cwd is not None and not (isinstance(cwd, str) and os.path.isabs(cwd)):
+        return {"ok": False, "error": "Pasta inválida."}
+    try:
+        return await links.ask(origin, target, question, timeout, cwd)
+    except LinkError as error:
+        return {"ok": False, "error": str(error)}
 
 
 def _peer_uid(writer) -> int:

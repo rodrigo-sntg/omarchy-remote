@@ -30,6 +30,7 @@ from .now import pc_command, media_command, read_now
 from .pen import PenDevice, parse_pen, pen_position
 from .omarchy_menu import MenuSource, desktop_apps, spawn_detached
 from .images import image_for, render
+from .links import Links
 from .herdr_keys import load as load_herdr_keys, sequences as herdr_sequences
 from .term import Pty, TermError, herdr_command, parse_term_ack, parse_term_resize, parse_term_start
 from .auth import is_allowed, machine_name, token_matches
@@ -72,6 +73,7 @@ class Hub:
         self.clip_last = None       # the clipboard's text as the phone already knows it (no echo)
         self.media = None           # what plays on the PC, as last pushed (a phone that connects gets it)
         self.devices = None         # the phones seen and revoked (omarchy-remote devices)
+        self.links = None           # agents talking to each other (links.Links), for omarchy-remote ask
         self.rotate_token = lambda: None  # set by the service: a new pairing code
         self.sockets: dict = {}     # every open authorized WebSocket -> the device (MagicDNS name) it belongs to
         self.offers = Offers()
@@ -202,6 +204,11 @@ def create_app(
     # video: the WebSocket of the current video session.
     state = {"active": None, "owner": None, "control": None, "video": None, "term": None}
     hub = Hub(state, state_path, notify, theme_reader, grace=notice_grace)
+    # Agents talking to each other; followed here even while the phone is away.
+    links = Links(herdr, agent_commands, hub.push) if agent_commands is not None else None
+    if links is not None:
+        agent_commands.links = links
+    hub.links = links
     hub.devices = devices
     hub.unlock_keys = unlocker.keys if unlocker is not None else None
     phone_notices = PhoneNotices(hub) if phone_notices_factory is None else phone_notices_factory(hub)
@@ -275,6 +282,8 @@ def create_app(
         try:
             await ws.send_json({"type": "session", "sessionId": session.session_id})
             await hub.push_theme()
+            if links is not None:
+                await links.publish(force=True)
             async for message in ws:
                 if message.type != WSMsgType.TEXT:
                     break
@@ -300,7 +309,7 @@ def create_app(
                         follower.follow(last.payload["id"], last.payload["after"])
                     else:
                         follower.stop()
-                elif agent_commands is not None and last is not None and last.type == "agent.start":
+                elif agent_commands is not None and last is not None and last.type in ("agent.start", "agent.review", "agent.relay"):
                     # Up to a minute (the agent getting ready): its own task, the other agents keep answering.
                     asyncio.create_task(_run_one(ws, last))
                 elif agent_worker is not None and last is not None and (last.type.startswith("agent.") or last.type == "projects.list"):

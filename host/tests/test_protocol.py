@@ -135,3 +135,21 @@ def test_a_session_to_reopen_is_named_by_its_uuid_only():
                 {"kind": "pi", "session": "01a0ce50-138e-7bb0-adf1-efe275fd8b69"}, {"kind": "claude"}):
         with pytest.raises(ProtocolError):
             parse(frame("agent.resume", bad))
+
+
+def test_agents_talking_to_each_other_are_validated():
+    relay = parse(frame("agent.relay", {"from": "w9:p2", "to": "w9:p1", "text": "use a fila", "note": "o que acha?"}))
+    assert relay.payload == {"from": "w9:p2", "to": "w9:p1", "text": "use a fila", "note": "o que acha?"}
+    assert parse(frame("agent.relay", {"from": "w9:p2", "to": "w9:p1", "text": "x"})).payload["note"] is None
+    assert parse(frame("agent.review", {"id": "w9:p2", "kind": "codex", "lang": "pt"})).payload == {"id": "w9:p2", "kind": "codex", "lang": "pt"}
+    assert parse(frame("agent.notice.dismiss", {"id": "a1b2c3d4e5f6"})).payload == {"id": "a1b2c3d4e5f6"}
+    for kind, payload in (
+        ("agent.relay", {"from": "w9:p2", "to": "w9;rm", "text": "x"}),
+        ("agent.relay", {"from": "w9:p2", "to": "w9:p1", "text": ""}),
+        ("agent.relay", {"from": "w9:p2", "to": "w9:p1", "text": "x" * 20_001}),
+        ("agent.review", {"id": "w9:p2", "kind": "gemini", "lang": "pt"}),
+        ("agent.review", {"id": "w9:p2", "kind": "codex", "lang": "fr"}),
+        ("agent.notice.dismiss", {"id": "../x"}),
+    ):
+        with pytest.raises(ProtocolError):
+            parse(frame(kind, payload))

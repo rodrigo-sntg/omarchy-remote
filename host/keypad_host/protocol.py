@@ -177,6 +177,31 @@ def _session_uuid(payload: dict) -> str:
     return value
 
 
+def _message(payload: dict, name: str, limit: int) -> str:
+    """Text for an agent: not empty, line breaks kept, other control characters dropped."""
+    value = _free_text(payload, name, limit)
+    if not value.strip():
+        raise ProtocolError(f"invalid {name}")
+    return value
+
+
+def _choice(payload: dict, name: str, options: tuple) -> str:
+    value = payload.get(name)
+    if value not in options:
+        raise ProtocolError(f"invalid {name}")
+    return value
+
+
+_NOTICE = re.compile(r"[0-9a-f]{8,32}")
+
+
+def _notice_id(payload: dict) -> str:
+    value = payload.get("id")
+    if not isinstance(value, str) or not _NOTICE.fullmatch(value):
+        raise ProtocolError("invalid id")
+    return value
+
+
 def _kind(payload: dict) -> str:
     value = payload.get("kind")
     if value not in ("claude", "codex"):
@@ -269,6 +294,11 @@ _PAYLOADS = {
     "agent.start": lambda p: {"cwd": _cwd(p), "kind": _kind(p), "prompt": _optional_prompt({"text": p.get("prompt")})},
     "projects.list": lambda p: {},
     "agent.sessions": lambda p: {},
+    # Agents talking to each other (links.py): a message passed on, a review asked, a notice read.
+    "agent.relay": lambda p: {"from": _target({"id": p.get("from")}), "to": _target({"id": p.get("to")}),
+                              "text": _message(p, "text", 20_000), "note": _free_text(p, "note", 2_000).strip() or None},
+    "agent.review": lambda p: {"id": _target(p), "kind": _kind(p), "lang": _choice(p, "lang", ("pt", "en"))},
+    "agent.notice.dismiss": lambda p: {"id": _notice_id(p)},
     "agent.resume": lambda p: {"kind": _kind(p), "session": _session_uuid(p)},
     "controls.get": lambda p: {},
     "host.get": lambda p: {},

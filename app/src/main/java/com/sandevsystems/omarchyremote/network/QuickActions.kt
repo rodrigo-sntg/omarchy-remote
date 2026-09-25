@@ -11,7 +11,11 @@ import java.time.format.DateTimeFormatter
  * compact when its context is filling up. [prompt] is sent as a message (or its own /command),
  * [keys] pressed; [urgent] stands out.
  */
-data class QuickAction(val id: String, val label: String, val prompt: String? = null, val keys: List<String>? = null, val urgent: Boolean = false)
+data class QuickAction(
+    val id: String, val label: String, val prompt: String? = null, val keys: List<String>? = null, val urgent: Boolean = false,
+    /** Another agent of the project reviews the changes (links.py): "claude" or "codex". */
+    val reviewer: String? = null,
+)
 
 fun quickActions(kind: String, status: String, context: Int?, changed: Int): List<QuickAction> {
     if (kind != "claude" && kind != "codex") return emptyList()
@@ -22,6 +26,11 @@ fun quickActions(kind: String, status: String, context: Int?, changed: Int): Lis
             add(QuickAction("continue", tr("Continuar", "Continue"), prompt = "continue"))
             // Each reviews in its own way: Claude Code's review command, Codex's /review.
             if (changed > 0) add(QuickAction("review", tr("Revisar o diff", "Review the diff"), prompt = if (kind == "claude") "/code-review" else "/review"))
+            // A second opinion: the other kind of agent reviews the same changes.
+            if (changed > 0) {
+                val other = if (kind == "claude") "codex" else "claude"
+                add(QuickAction("cross_review", tr("Revisão do ${AgentsText.kindName(other)}", "${AgentsText.kindName(other)} review"), reviewer = other))
+            }
             add(QuickAction("recap", tr("Resumir", "Summarize"), prompt = "/recap"))
         }
         else -> emptyList()

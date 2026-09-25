@@ -19,6 +19,7 @@ It checks what's needed, installs, asks you before anything that needs `sudo` or
 - **Control:** trackpad (tap, drag, two-finger scroll, three-finger workspace switch), keyboard that types in the PC's layout, shortcut row, workspace buttons, Copy and Paste (Omarchy's universal clipboard, terminals included).
 - **Screen:** a live map of your monitors with thumbnails; see and touch the PC's screen from anywhere; follow the focused window; use the phone as an extra display.
 - **AI agents:** Claude Code and Codex running in [herdr](https://herdr.dev), as chats: the whole conversation, permission requests as buttons, diffs, the `/` menu of each agent, subagents, the project's git status, model picker, voice input. Images the agent names show right in the chat. A session closed by mistake reopens from *Recently closed*, with the options it ran with. A second Claude account (`CLAUDE_CONFIG_DIR=~/.claude-<name>`) gets its own color and its own limits. Notifications when an agent needs you or finishes, with Allow, Deny and Reply (after unlocking the phone).
+- **Agents talking to each other:** under an agent's answer, *Send to…* passes it to another agent (with a comment, if you like); a one-tap *Codex review* (or *Claude review*) has the other agent of the project review the changes, and its review comes back as a card, ready to send to the first one. Messages that came from another agent say so, and the Agents list shows who is talking with whom. Agents can also ask each other themselves with `omarchy-remote ask` (below).
 - **Terminal:** herdr on the phone, with its panes and tabs one tap away (split, close, switch; your own herdr keys) and Paste.
 - **Control center:** media, volume and output, microphone, night light, do not disturb, stay awake, screen recording, power profile, wallpaper, bar, gaps, lock, suspend, restart and shut down.
 - **Omarchy:** the app follows the active Omarchy theme; Omarchy's menu, keybindings and windows are one tap away; a *Phone* menu and a bar icon on the PC.
@@ -88,7 +89,21 @@ How it works: the phone keeps an EC key that only its fingerprint unlocks; the P
 
 - **Bar icon:** lit while the phone is connected; the tooltip shows its battery and how many agents are waiting. Click opens the *Phone* menu; middle click sends the clipboard to the phone.
 - **Super+Space › Phone:** pair (QR), send the clipboard, a file or a screenshot to the phone, show the PC's screen on the phone, use it as an extra display, open herdr on it, find the phone, list paired phones, new pairing code.
-- **CLI** `omarchy-remote`: `status`, `connected`, `pair`, `send-clipboard`, `send-file`, `screenshot`, `ring [--stop]`, `devices [revoke <name>]`, `new-code`, `theme-changed`, `open screen|extra|terminal`. It talks to the service through a socket only your user can open (`$XDG_RUNTIME_DIR/omarchy-remote/control.sock`).
+- **CLI** `omarchy-remote`: `status`, `connected`, `pair`, `send-clipboard`, `send-file`, `screenshot`, `ring [--stop]`, `devices [revoke <name>]`, `new-code`, `ask <claude|codex|pane> "<question>"`, `theme-changed`, `open screen|extra|terminal`. It talks to the service through a socket only your user can open (`$XDG_RUNTIME_DIR/omarchy-remote/control.sock`).
+
+### Agents asking each other
+
+From inside an agent's terminal (herdr), one agent can ask another of the same project and get its answer back:
+
+```bash
+omarchy-remote ask codex "Which queue library does this repo use, and why?"
+omarchy-remote ask claude "Review host/links.py for race conditions" --wait 900
+omarchy-remote ask w9:p1 "…"          # a specific pane
+```
+
+It picks a free agent of that kind in the same project (or opens one), waits for it to finish (10 minutes by default), and prints its last answer. The question arrives starting with `↪ Claude · <project> · <pane> · ask`, so the other agent knows who asks; an agent that is answering a question can't ask one back, so they never ping-pong. To let your agents use it, add a line like this to the project's `CLAUDE.md` / `AGENTS.md`:
+
+> To get a second opinion from the other coding agent of this project, run `omarchy-remote ask codex "<question>"` (or `claude`); it prints its answer.
 
 ## Bluetooth mode
 

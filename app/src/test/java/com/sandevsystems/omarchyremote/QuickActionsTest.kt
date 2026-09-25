@@ -45,7 +45,7 @@ class QuickActionsTest {
         assertEquals(listOf(QuickAction("stop", "Interromper", keys = listOf("esc"))), quickActions("claude", "working", null, 0))
         assertEquals(emptyList<QuickAction>(), quickActions("claude", "blocked", 90, 3))
         val idle = quickActions("claude", "idle", 87, 3)
-        assertEquals(listOf("compact", "continue", "review", "recap"), idle.map { it.id })
+        assertEquals(listOf("compact", "continue", "review", "cross_review", "recap"), idle.map { it.id })
         assertEquals("Compactar 87%", idle[0].label)
         assertTrue(idle[0].urgent)
         assertEquals("/code-review", idle[2].prompt)

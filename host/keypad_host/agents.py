@@ -9,6 +9,7 @@ from pathlib import Path
 
 from .agent_commands import commands_for
 from .herdr import HerdrError, running_session
+from .links import LinkError
 from .sessions import LIMIT, account_of, Remembered, config_dir_of, describe, kept_flags, recent, resume_command
 from .git_view import file_diff, git_summary
 from .projects import projects
@@ -74,6 +75,7 @@ class AgentCommands:
         home_dir = Path(home) if home else Path.home()
         self.remembered = Remembered(home_dir / ".local/state/omarchy-remote/sessions.json")
         self._observing = None
+        self.links = None   # links.Links, set by the server
 
     async def _observe_quietly(self):
         try:
@@ -171,6 +173,35 @@ class AgentCommands:
         path = await asyncio.to_thread(find, kind, session_id, self.home)
         return (kind, path) if path is not None else None
 
+    async def _links(self, message) -> list[dict]:
+        """Agents talking to each other (links.py): a message passed on, a review, a notice read."""
+        p = message.payload
+        if self.links is None:
+            return [{"type": "ack", "seq": message.seq, "ok": False, "error": "Indisponível."}]
+        try:
+            if message.type == "agent.relay":
+                await self.links.relay(p["from"], p["to"], p["text"], p["note"])
+            elif message.type == "agent.review":
+                reviewer = await self.links.review(p["id"], p["kind"], p["lang"])
+                return [{"type": "ack", "seq": message.seq, "ok": True}, {"type": "agent.reviewing", "id": p["id"], "reviewer": reviewer}]
+            else:
+                self.links.dismiss(p["id"])
+                await self.links.publish()
+        except LinkError as error:
+            return [{"type": "ack", "seq": message.seq, "ok": False, "error": str(error)}]
+        return [{"type": "ack", "seq": message.seq, "ok": True}]
+
+    async def last_said(self, target: str, since: float) -> str | None:
+        """What the agent said last, if it said it after [since] (epoch seconds): its answer."""
+        found = await self.transcript(target)
+        if found is None:
+            return None
+        page = await asyncio.to_thread(read_back, found[1], found[0], None, 60)
+        for item in reversed(page["items"]):
+            if item["k"] == "said":
+                return item["t"] if item.get("ts", since) >= since else None
+        return None
+
     async def start(self, cwd: str, kind: str, prompt: str) -> str:
         """A new agent in the project: a tab in its herdr workspace (or a workspace of its own), the
         agent started there, the task sent. The new pane's id."""
@@ -213,6 +244,8 @@ class AgentCommands:
                     return [{"type": "agent.history", "id": p["id"], "none": True}]
                 page = await asyncio.to_thread(read_back, found[1], found[0], p["before"], p["limit"])
                 return [{"type": "agent.history", "id": p["id"], **page}]
+            if message.type in ("agent.relay", "agent.review", "agent.notice.dismiss"):
+                return await self._links(message)
             if message.type == "agent.resume":
                 pane = await self.resume(p["kind"], p["session"])
                 return [{"type": "ack", "seq": message.seq, "ok": True}, {"type": "agent.started", "id": pane}]

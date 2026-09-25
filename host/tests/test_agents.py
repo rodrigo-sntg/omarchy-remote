@@ -289,3 +289,53 @@ def test_each_agent_says_when_it_last_did_something(tmp_path):
     listed = asyncio.run(AgentCommands(FakeHerdr(), home=tmp_path).with_subagents([{"id": "w1:p1", "kind": "claude"}, {"id": "w1:p2", "kind": "claude"}]))
     assert listed[0]["active"] == 1_790_000_000
     assert "active" not in listed[1]  # no session file known
+
+
+def test_what_an_agent_last_said_after_a_moment_comes_from_its_session(tmp_path):
+    claude_file(tmp_path, [
+        {"type": "assistant", "timestamp": "2026-09-25T10:00:00Z", "message": {"content": [{"type": "text", "text": "antes"}]}},
+        {"type": "assistant", "timestamp": "2026-09-25T10:05:00Z", "message": {"content": [{"type": "text", "text": "Vou olhar."}]}},
+        {"type": "assistant", "timestamp": "2026-09-25T10:06:00Z", "message": {"content": [{"type": "text", "text": "Dois riscos."}]}},
+    ])
+    commands = AgentCommands(FakeHerdr(), home=tmp_path)
+    from datetime import datetime, timezone
+    since = datetime(2026, 9, 25, 10, 1, tzinfo=timezone.utc).timestamp()
+    assert asyncio.run(commands.last_said("w1:p1", since)) == "Dois riscos."
+    later = datetime(2026, 9, 25, 11, 0, tzinfo=timezone.utc).timestamp()
+    assert asyncio.run(commands.last_said("w1:p1", later)) is None     # nothing new since
+    assert asyncio.run(commands.last_said("w1:p2", since)) is None     # no session known
+
+
+def test_the_phones_agent_to_agent_requests_go_to_the_links():
+    from keypad_host.links import LinkError
+
+    class Links:
+        def __init__(self):
+            self.calls = []
+
+        async def relay(self, source, target, text, note=None):
+            self.calls.append(("relay", source, target, text, note))
+            if target == "w1:p9":
+                raise LinkError("Esse agente não está mais no herdr.")
+            return "id1"
+
+        async def review(self, source, kind, lang):
+            self.calls.append(("review", source, kind, lang))
+            return "w1:p5"
+
+        def dismiss(self, notice):
+            self.calls.append(("dismiss", notice))
+
+        async def publish(self, force=False):
+            self.calls.append(("publish", force))
+
+    commands = AgentCommands(FakeHerdr())
+    commands.links = Links()
+    ok = asyncio.run(commands.handle(Message("s", 1, "agent.relay", {"from": "w1:p1", "to": "w1:p2", "text": "x", "note": None})))
+    gone = asyncio.run(commands.handle(Message("s", 2, "agent.relay", {"from": "w1:p1", "to": "w1:p9", "text": "x", "note": None})))
+    review = asyncio.run(commands.handle(Message("s", 3, "agent.review", {"id": "w1:p1", "kind": "codex", "lang": "pt"})))
+    asyncio.run(commands.handle(Message("s", 4, "agent.notice.dismiss", {"id": "abcdef12"})))
+    assert ok == [{"type": "ack", "seq": 1, "ok": True}]
+    assert gone == [{"type": "ack", "seq": 2, "ok": False, "error": "Esse agente não está mais no herdr."}]
+    assert review == [{"type": "ack", "seq": 3, "ok": True}, {"type": "agent.reviewing", "id": "w1:p1", "reviewer": "w1:p5"}]
+    assert ("dismiss", "abcdef12") in commands.links.calls and ("publish", False) in commands.links.calls

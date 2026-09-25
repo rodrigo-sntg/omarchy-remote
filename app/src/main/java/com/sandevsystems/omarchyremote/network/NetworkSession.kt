@@ -92,6 +92,7 @@ class NetworkSession(
     /** Where an agent can be started ([listProjects]), and the pane of one that started ([startAgent]). */
     private val onProjects: (List<Project>) -> Unit = {},
     private val onSessions: (List<RecentSession>) -> Unit = {},
+    private val onLinks: (AgentLinks) -> Unit = {},
     private val onAgentStarted: (String) -> Unit = {},
     /** The subagents an agent launched, as asked with [agentSubagents]. */
     private val onAgentSubagents: (String, List<Subagent>) -> Unit = { _, _ -> },
@@ -192,6 +193,7 @@ class NetworkSession(
             }.orEmpty())
             "agent.started" -> onAgentStarted(message.getString("id"))
             "agent.sessions" -> onSessions(RecentSessions.parse(message.optJSONArray("items")))
+            "agent.links" -> onLinks(AgentLinks.parse(message))
             "agent.subagents" -> onAgentSubagents(message.getString("id"), message.optJSONArray("items")?.let { a ->
                 List(a.length()) { i ->
                     val o = a.getJSONObject(i)
@@ -430,6 +432,18 @@ class NetworkSession(
 
     fun listProjects() {
         message("projects.list", JSONObject())
+    }
+
+    /** Something one agent said, passed on to another (with the person's [note] above it). */
+    suspend fun relayAgent(from: String, to: String, text: String, note: String?): Boolean =
+        acked("agent.relay", JSONObject().put("from", from).put("to", to).put("text", text).put("note", note ?: ""), START_TIMEOUT_MS)
+
+    /** Another agent ([kind]) of the project reviews [agent]'s changes; the answer comes back as a notice. */
+    suspend fun requestReview(agent: String, kind: String, lang: String): Boolean =
+        acked("agent.review", JSONObject().put("id", agent).put("kind", kind).put("lang", lang), START_TIMEOUT_MS)
+
+    fun dismissNotice(id: String) {
+        message("agent.notice.dismiss", JSONObject().put("id", id))
     }
 
     /** The agents' recent sessions, open and closed (RecentSessions). */

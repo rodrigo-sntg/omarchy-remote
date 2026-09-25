@@ -18,7 +18,7 @@ object AgentScreen {
     private val statusLine = Regex("\\bon \\S+ \\|| \\| .*ctx \\d+%")
     private val spinnerMark = "[*✻✶✳✢·✽⏺]"
     private val worked = Regex("^\\s*$spinnerMark\\s+\\w+ for ((?:\\d+h )?(?:\\d+m )?\\d+s)\\b(.*)$")
-    private val working = Regex("^\\s*$spinnerMark\\s+\\S+…\\s*\\((\\d+[hms][^·)]*?)\\s*[·)]")
+    private val working = Regex("^\\s*(?:$spinnerMark\\s+\\S+…|[•◦]?\\s*Working)\\s*\\((\\d+[hms][^·•)]*?)\\s*[·•)]")
     private val shells = Regex("(\\d+) shells? still running")
 
     /** Codex's input box: its prompt mark at the line start; the model line and sparkles follow. */

@@ -13,6 +13,9 @@
   omarchy-remote ring [--stop]         make the phone ring loudly, even on silent (find it)
   omarchy-remote devices               the phones that connected; revoke one with: devices revoke <nome>
   omarchy-remote new-code              a new pairing code (every phone pairs again) and its QR
+  omarchy-remote ask <claude|codex|painel> "pergunta" [--wait segundos]
+                                       from inside an agent: ask another agent of the project and
+                                       print its answer (the phone shows the exchange)
 Standard library only: runs with the system python3.
 """
 import json
@@ -31,10 +34,10 @@ RUN_DIR = Path(os.environ.get("OMARCHY_REMOTE_RUN_DIR") or
 TOKEN = Path.home() / ".config" / "omarchy-remote" / "token"
 
 
-def call(cmd: dict) -> dict:
+def call(cmd: dict, wait: float = 5) -> dict:
     try:
         with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
-            s.settimeout(5)
+            s.settimeout(wait)
             s.connect(str(RUN_DIR / "control.sock"))
             s.sendall(json.dumps(cmd, ensure_ascii=False).encode() + b"\n")
             return json.loads(s.makefile().readline() or "{}")
@@ -98,6 +101,27 @@ def screenshot(whole: bool):
         path.unlink(missing_ok=True)
         fail(reply.get("error", "Erro."))
     osd("Print enviado ao celular")
+
+
+def ask(argv: list[str]):
+    """ask <target> <question…> [--wait N]: prints the answer; exit 1 with the reason otherwise."""
+    wait = 600
+    if "--wait" in argv:
+        i = argv.index("--wait")
+        try:
+            wait = int(argv[i + 1])
+        except (IndexError, ValueError):
+            fail("--wait precisa de um número de segundos.", show=False)
+        argv = argv[:i] + argv[i + 2:]
+    if len(argv) < 2:
+        print(__doc__.strip())
+        sys.exit(2)
+    target, question = argv[0], " ".join(argv[1:])
+    reply = call({"cmd": "ask", "target": target, "question": question, "timeout": wait,
+                  "from": os.environ.get("HERDR_PANE_ID"), "cwd": os.getcwd()}, wait=wait + 30)
+    if not reply.get("ok"):
+        fail(reply.get("error", "Erro."), show=False)
+    print(reply.get("text") or "")
 
 
 def main(argv: list[str]):
@@ -164,6 +188,8 @@ def main(argv: list[str]):
             fail(reply.get("error", "Erro."), show=False)
         print("Código novo: os celulares pareados precisam ler o QR de novo.\n")
         pair()
+    elif command == "ask":
+        ask(argv[1:])
     elif command == "open" and len(argv) == 2:
         reply = call({"cmd": "open", "what": argv[1]})
         if not reply.get("ok"):

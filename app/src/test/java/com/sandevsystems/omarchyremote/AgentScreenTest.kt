@@ -42,6 +42,14 @@ Update available! Run: mise upgrade claude
     }
 
     @Test
+    fun codexWorkingSaysSoToo() {
+        val working = "• Ran tests\n\n• Working (1m 02s • esc to interrupt)\n\n› \n"
+        assertEquals("Trabalhando… 1m 02s", AgentScreen.clean(working).footer)
+        val bullet = "◦ Working (7s • Esc to interrupt)\n"
+        assertEquals("Trabalhando… 7s", AgentScreen.clean(bullet).footer)
+    }
+
+    @Test
     fun anotherProgramsTextIsLeftAlone() {
         val shell = "$ ls\nREADME.md  app  host\n$ "
         val screen = AgentScreen.clean(shell)

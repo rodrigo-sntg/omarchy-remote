@@ -86,6 +86,9 @@ class NetworkController(private val scope: CoroutineScope) {
     private val _projects = MutableStateFlow<List<Project>>(emptyList())
     /** Where an agent can be started (herdr's open projects, then Claude's recent ones). */
     val projects: StateFlow<List<Project>> = _projects.asStateFlow()
+    private val _links = MutableStateFlow(AgentLinks())
+    /** Agents talking to each other, and the notices waiting (host links.py). */
+    val links: StateFlow<AgentLinks> = _links.asStateFlow()
     private val _sessions = MutableStateFlow<List<RecentSession>>(emptyList())
     /** The agents' recent sessions (to reopen a closed one). */
     val sessions: StateFlow<List<RecentSession>> = _sessions.asStateFlow()
@@ -201,6 +204,7 @@ class NetworkController(private val scope: CoroutineScope) {
             onControls = { c -> main.post { _controls.value = c } },
             onProjects = { list -> main.post { _projects.value = list } },
             onSessions = { list -> main.post { _sessions.value = list } },
+            onLinks = { links -> main.post { _links.value = links } },
             onAgentStarted = { id -> main.post { _agentStarted.tryEmit(id) } },
             onAgentSubagents = { id, items -> main.post { _agentSubagents.value = id to items } },
             onAgentScreen = { id, text -> main.post { _agentScreen.value = id to text } },
@@ -347,6 +351,15 @@ class NetworkController(private val scope: CoroutineScope) {
     }
 
     suspend fun resumeSession(kind: String, id: String) = input?.resumeSession(kind, id) ?: false
+
+    suspend fun relayAgent(from: String, to: String, text: String, note: String?) = input?.relayAgent(from, to, text, note) ?: false
+
+    suspend fun requestReview(agent: String, kind: String, lang: String) = input?.requestReview(agent, kind, lang) ?: false
+
+    fun dismissNotice(id: String) {
+        input?.dismissNotice(id)
+        _links.value = _links.value.copy(notices = _links.value.notices.filterNot { it.id == id })
+    }
 
     fun controlsGet() {
         input?.controlsGet()

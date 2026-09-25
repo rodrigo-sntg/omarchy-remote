@@ -97,6 +97,7 @@ import com.sandevsystems.omarchyremote.network.RecentSession
 import com.sandevsystems.omarchyremote.network.RecentSessions
 import com.sandevsystems.omarchyremote.network.WorkingTime
 import com.sandevsystems.omarchyremote.network.ImageRefs
+import com.sandevsystems.omarchyremote.network.RelayHeader
 import com.sandevsystems.omarchyremote.network.SeenAgents
 import com.sandevsystems.omarchyremote.network.ChatItem
 import com.sandevsystems.omarchyremote.network.ChatState
@@ -127,6 +128,7 @@ fun AgentsTab(vm: KeypadViewModel, selected: String?, onSelect: (String?) -> Uni
     var usageOpen by rememberSaveable { mutableStateOf(false) }
     var newOpen by rememberSaveable { mutableStateOf(false) }
     var sessionsOpen by rememberSaveable { mutableStateOf(false) }
+    val links by vm.agentLinks.collectAsStateWithLifecycle()
     val sessions by vm.sessions.collectAsStateWithLifecycle()
     val (usage, now) = rememberUsage(vm)
     // The sessions again whenever an agent comes or goes: a tab closed on the PC shows up to reopen.
@@ -144,7 +146,7 @@ fun AgentsTab(vm: KeypadViewModel, selected: String?, onSelect: (String?) -> Uni
         AgentDetail(vm, agent, usage, onBack = { onSelect(null) }, onTerminal = {
             vm.focusAgent(agent.id)
             onTerminal()
-        }, modifier)
+        }, onOpenAgent = { id -> if (agents.any { it.id == id }) onSelect(id) }, modifier = modifier)
         return
     }
     // What the agents that matter now show, read every few seconds.
@@ -199,7 +201,8 @@ fun AgentsTab(vm: KeypadViewModel, selected: String?, onSelect: (String?) -> Uni
                 working.forEachIndexed { i, a ->
                     if (i > 0) GroupDivider()
                     val subs = if (a.subagents > 0) subagentCount(a.subagents) + " · " else ""
-                    GroupRow(agentTitle(a), subs + activity(vm.agentTexts[a.id], a), { onSelect(a.id) }, trailing = { Spinner() }, account = a.account)
+                    val talk = talkLabel(links, agents, a)?.let { "$it · " }.orEmpty()
+                    GroupRow(agentTitle(a), talk + subs + activity(vm.agentTexts[a.id], a), { onSelect(a.id) }, trailing = { Spinner() }, account = a.account)
                 }
             }
         }
@@ -209,7 +212,8 @@ fun AgentsTab(vm: KeypadViewModel, selected: String?, onSelect: (String?) -> Uni
                 idle.forEachIndexed { i, a ->
                     if (i > 0) GroupDivider()
                     val spent = usage?.let { exhausted(it, a.kind, a.account) } == true
-                    GroupRow(agentTitle(a), origin(a), { onSelect(a.id) }, minHeight = 56.dp, account = a.account, trailing = if (spent) {
+                    val talk = talkLabel(links, agents, a)?.let { "$it · " }.orEmpty()
+                    GroupRow(agentTitle(a), talk + origin(a), { onSelect(a.id) }, minHeight = 56.dp, account = a.account, trailing = if (spent) {
                         { Text(tr("Sem limite", "Out of limit"), style = GroupType.Sub, color = KeypadColors.Danger) }
                     } else null)
                 }
@@ -686,7 +690,12 @@ private fun summarize(actions: List<Did>): String {
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun AgentDetail(vm: KeypadViewModel, agent: Agent, usage: UsageState?, onBack: () -> Unit, onTerminal: () -> Unit, modifier: Modifier) {
+private fun AgentDetail(vm: KeypadViewModel, agent: Agent, usage: UsageState?, onBack: () -> Unit, onTerminal: () -> Unit, onOpenAgent: (String) -> Unit, modifier: Modifier) {
+    val links by vm.agentLinks.collectAsStateWithLifecycle()
+    val allAgents by vm.agents.collectAsStateWithLifecycle()
+    // "Mandar para…": the answer being passed on, while its sheet is open.
+    var relaying by remember(agent.id) { mutableStateOf<String?>(null) }
+    relaying?.let { text -> RelaySheet(vm, agent, text, allAgents, onDismiss = { relaying = null }) }
     // Opened here, a finished agent's answer is read: it leaves "Precisa de você" (until it finishes again).
     LaunchedEffect(agent.id, agent.seq, agent.status) { SeenAgents.saw(agent) }
     val text by vm.agentText.collectAsStateWithLifecycle()
@@ -783,7 +792,13 @@ private fun AgentDetail(vm: KeypadViewModel, agent: Agent, usage: UsageState?, o
         }
         val history = vm.chat?.takeIf { it.id == agent.id && it.loaded && it.entries.isNotEmpty() }
         if (history != null) {
-            Transcript(history, vm, chat?.footer ?: screen?.footer, live, Modifier.weight(1f).fillMaxWidth(), runner)
+            // herdr says it works but its screen had no clock (another agent's format): a clock from when it began.
+            val workingSince = remember(agent.id, agent.seq) { System.currentTimeMillis() / 1000 }
+            val status = chat?.footer ?: screen?.footer ?: if (agent.status == "working")
+                WorkingTime.tick(tr("Trabalhando… 0s", "Working… 0s"), System.currentTimeMillis() / 1000 - workingSince) else null
+            Transcript(history, vm, status, live, Modifier.weight(1f).fillMaxWidth(), runner,
+                onRelay = { relaying = it }, onOpenAgent = { id -> onOpenAgent(id) }, openable = allAgents.map { it.id }.toSet())
+            LinkCards(vm, agent, links, allAgents, onOpenAgent)
             QuickRow(vm, agent, raw, history, runner != null) { confirm = listOf(it) }
         } else {
             // The conversation keeps to its end while it grows, unless the person scrolled up to read.
@@ -806,6 +821,7 @@ private fun AgentDetail(vm: KeypadViewModel, agent: Agent, usage: UsageState?, o
                 live()
                 Spacer(Modifier.height(4.dp))
             }
+            LinkCards(vm, agent, links, allAgents, onOpenAgent)
             QuickRow(vm, agent, raw, null, false) { confirm = listOf(it) }
         }
         // The terminal's keys: numbered answers, arrows, Esc and Enter (open by themselves when an
@@ -958,8 +974,23 @@ private fun Conversation(chat: AgentConversation.Chat) {
  * and new messages keep the list at its end while the person is there.
  */
 @Composable
-private fun Transcript(c: ChatState, vm: KeypadViewModel, status: String?, live: @Composable () -> Unit, modifier: Modifier, onRun: ((List<String>) -> Unit)?) {
+private fun Transcript(
+    c: ChatState, vm: KeypadViewModel, status: String?, live: @Composable () -> Unit, modifier: Modifier, onRun: ((List<String>) -> Unit)?,
+    onRelay: (String) -> Unit, onOpenAgent: (String) -> Unit, openable: Set<String>,
+) {
     val blocks = remember(c.entries) { c.blocks() }
+    // The last answer of each turn (before the person speaks again, or the newest): it gets Copiar and Mandar para….
+    val turnEnds = remember(blocks) {
+        val ends = mutableSetOf<Long>()
+        var saidSinceYou: Long? = null
+        for (b in blocks) {
+            val item = (b as? ChatBlock.Message)?.item
+            if (item is ChatItem.You) { saidSinceYou?.let(ends::add); saidSinceYou = null }
+            if (item is ChatItem.Said) saidSinceYou = b.key
+        }
+        saidSinceYou?.let(ends::add)
+        ends
+    }
     // Each message's time by its key, to know the one before.
     val times = remember(blocks) {
         java.util.TreeMap<Long, Long>().apply {
@@ -996,11 +1027,16 @@ private fun Transcript(c: ChatState, vm: KeypadViewModel, status: String?, live:
             }
             when (b) {
                 is ChatBlock.Message -> when (val item = b.item) {
-                    is ChatItem.You -> Bubble(item.text)
+                    is ChatItem.You -> {
+                        val relayed = remember(item.text) { RelayHeader.parse(item.text) }
+                        if (relayed != null) RelayedBubble(relayed, relayed.pane.takeIf { it in openable }?.let { pane -> { onOpenAgent(pane) } })
+                        else Bubble(item.text)
+                    }
                     is ChatItem.Said -> Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         MarkdownText(item.text, onRun = onRun)
                         // Images it names (a logo it drew, a file it made): right there, a tap opens them.
                         AgentImages(vm, c.id, remember(item.text) { ImageRefs.inText(item.text) })
+                        if (b.key in turnEnds) AnswerActions(item.text) { onRelay(item.text) }
                     }
                     else -> {}
                 }
@@ -1052,6 +1088,7 @@ private fun QuickRow(vm: KeypadViewModel, agent: Agent, raw: String?, c: ChatSta
                         Haptic.tap(view)
                         a.keys?.let { vm.agentKeys(agent.id, it) }
                         a.prompt?.let { vm.agentPrompt(agent.id, it) }
+                        a.reviewer?.let { vm.requestReview(agent.id, it) }
                     }.padding(horizontal = 14.dp),
                 contentAlignment = Alignment.Center,
             ) { Text(a.label, style = GroupType.Lead, color = if (a.urgent) KeypadColors.Attention else KeypadColors.Text, maxLines = 1) }
