@@ -51,13 +51,15 @@ data class AgentLinks(val links: List<Link> = emptyList(), val notices: List<Not
 /** The first line the PC puts on a prompt that came from another agent: "↪ Claude · app · w9:p2[ · review|ask]". */
 data class RelayHeader(val kind: String, val project: String, val pane: String, val what: String, val body: String) {
     companion object {
+        /** What the PC adds for the agent at the end of a question (host links.ASK_TAIL). */
+        private const val ASK_TAIL = "(Answer directly and briefly: your reply goes back to the agent that asked.)"
         private val line = Regex("^↪ (\\S+) · (.+?) · (w\\S*:p\\d+)(?: · (review|ask))?$")
 
         fun parse(text: String): RelayHeader? {
             val first = text.substringBefore('\n')
             val m = line.matchEntire(first) ?: return null
             return RelayHeader(m.groupValues[1].lowercase(), m.groupValues[2], m.groupValues[3], m.groupValues[4].ifEmpty { "relay" },
-                text.substringAfter('\n', "").trim())
+                text.substringAfter('\n', "").trim().removeSuffix(ASK_TAIL).trim())
         }
     }
 }

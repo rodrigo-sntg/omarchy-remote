@@ -49,6 +49,9 @@ class AgentLinksTest {
         assertEquals("O que acha?\n\n> Use a fila.", relayed.body)
         assertEquals("review", RelayHeader.parse("↪ Codex · my app · w1:p10 · review\n\nRevise…")!!.what)
         assertNull(RelayHeader.parse("uma mensagem qualquer"))
+        // The note for the agent at the end of a question isn't for the person.
+        val ask = RelayHeader.parse("↪ Claude · app · w9:p2 · ask\n\nResponda só: OK\n\n(Answer directly and briefly: your reply goes back to the agent that asked.)")!!
+        assertEquals("Responda só: OK", ask.body)
     }
 
     @Test
